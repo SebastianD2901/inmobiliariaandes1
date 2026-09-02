@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Andina Propiedades | Venta y alquiler de inmuebles en Riobamba</title>
+  <meta name="description" content="Casas, departamentos, terrenos y locales comerciales en venta y alquiler en Riobamba y Chimborazo. Asesoría, avalúos y financiamiento.">
+  <meta name="author" content="Andina Propiedades">
+  <meta property="og:title" content="Andina Propiedades — Inmuebles en Riobamba">
+  <meta property="og:description" content="Encuentra tu próxima casa o departamento con asesoría profesional.">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "RealEstateAgent",
+    "name": "Andina Propiedades",
+    "areaServed": "Riobamba, Chimborazo, Ecuador",
+    "telephone": "+593-99-000-0000",
+    "priceRange": "$$"
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ============ ENCABEZADO ============ -->
+  <header class="header" id="inicio">
+    <div class="contenedor header__inner">
+      <a href="#inicio" class="logo" aria-label="Andina Propiedades, inicio">
+        <svg class="logo__icono" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M4 16 16 5l12 11v11a2 2 0 0 1-2 2h-7v-8h-6v8H6a2 2 0 0 1-2-2z" fill="currentColor"/>
+        </svg>
+        <span class="logo__texto">Andina<strong>Propiedades</strong></span>
+      </a>
+
+      <nav class="nav" id="nav-principal" aria-label="Navegación principal">
+        <a href="#inicio" class="nav__enlace">Inicio</a>
+        <a href="#propiedades" class="nav__enlace">Propiedades</a>
+        <a href="#credito" class="nav__enlace">Crédito</a>
+        <a href="#servicios" class="nav__enlace">Servicios</a>
+        <a href="#contacto" class="nav__enlace">Contacto</a>
+      </nav>
+
+      <div class="header__acciones">
+        <button class="icono-btn" id="btn-favoritos" type="button" aria-label="Ver favoritos">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-4.9-8-10a4.7 4.7 0 0 1 8-3.3A4.7 4.7 0 0 1 20 11c0 5.1-8 10-8 10z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <span class="badge" id="contador-favoritos" hidden>0</span>
+        </button>
+        <button class="icono-btn" id="btn-tema" type="button" aria-label="Cambiar entre tema claro y oscuro">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path id="icono-tema" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg>
+        </button>
+        <a href="#contacto" class="btn btn--primario btn--sm ocultar-movil">Agenda tu visita</a>
+        <button class="icono-btn solo-movil" id="btn-menu" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav-principal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ HERO + BUSCADOR ============ -->
+    <section class="hero">
+      <div class="contenedor hero__inner">
+        <p class="hero__kicker">Riobamba · Chimborazo · Ecuador</p>
+        <h1 class="hero__titulo">La casa correcta, en el sector correcto, al precio correcto.</h1>
+        <p class="hero__subtitulo">
+          Catálogo verificado de casas, departamentos, terrenos y locales comerciales.
+          Acompañamiento legal y financiero de principio a fin.
+        </p>
+
+        <form class="buscador" id="form-busqueda" role="search" aria-label="Búsqueda rápida de propiedades">
+          <div class="campo">
+            <label for="f-operacion">Operación</label>
+            <select id="f-operacion">
+              <option value="">Todas</option>
+              <option value="venta">Venta</option>
+              <option value="alquiler">Alquiler</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="f-tipo">Tipo</label>
+            <select id="f-tipo">
+              <option value="">Todos</option>
+              <option value="casa">Casa</option>
+              <option value="departamento">Departamento</option>
+              <option value="terreno">Terreno</option>
+              <option value="local">Local comercial</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="f-texto">Sector o palabra clave</label>
+            <input type="search" id="f-texto" placeholder="Ej. La Primavera, suite, jardín">
+          </div>
+          <div class="campo">
+            <label for="f-precio">Precio máximo: <output id="salida-precio">$400.000</output></label>
+            <input type="range" id="f-precio" min="500" max="400000" step="500" value="400000">
+          </div>
+          <button type="submit" class="btn btn--primario btn--buscar">Buscar</button>
+        </form>
+
+        <ul class="hero__stats">
+          <li><strong id="stat-total">0</strong><span>propiedades publicadas</span></li>
+          <li><strong>14</strong><span>años en el mercado</span></li>
+          <li><strong>+900</strong><span>familias asesoradas</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ CATÁLOGO ============ -->
+    <section class="seccion" id="propiedades">
+      <div class="contenedor">
+        <header class="seccion__head">
+          <div>
+            <h2 class="seccion__titulo">Propiedades disponibles</h2>
+            <p class="seccion__sub" id="contador-resultados">Cargando…</p>
+          </div>
+          <div class="filtros-avanzados">
+            <div class="campo campo--inline">
+              <label for="f-dorm">Dormitorios</label>
+              <select id="f-dorm">
+                <option value="">Cualquiera</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+            <div class="campo campo--inline">
+              <label for="f-banos">Baños</label>
+              <select id="f-banos">
+                <option value="">Cualquiera</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+              </select>
+            </div>
+            <div class="campo campo--inline">
+              <label for="f-area">Área mín. (m²)</label>
+              <select id="f-area">
+                <option value="">Cualquiera</option>
+                <option value="60">60+</option>
+                <option value="100">100+</option>
+                <option value="150">150+</option>
+                <option value="300">300+</option>
+              </select>
+            </div>
+            <div class="campo campo--inline">
+              <label for="f-orden">Ordenar por</label>
+              <select id="f-orden">
+                <option value="recientes">Más recientes</option>
+                <option value="precio-asc">Precio: menor a mayor</option>
+                <option value="precio-desc">Precio: mayor a menor</option>
+                <option value="area-desc">Mayor superficie</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn--texto" id="btn-limpiar">Limpiar filtros</button>
+          </div>
+        </header>
+
+        <div class="grilla" id="grilla-propiedades" aria-live="polite"></div>
+
+        <div class="vacio" id="estado-vacio" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <h3>No encontramos propiedades con esos criterios</h3>
+          <p>Prueba ampliando el presupuesto o quitando algún filtro.</p>
+          <button type="button" class="btn btn--primario" id="btn-limpiar-2">Ver todas las propiedades</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CALCULADORA DE CRÉDITO ============ -->
+    <section class="seccion seccion--alt" id="credito">
+      <div class="contenedor calc">
+        <div class="calc__intro">
+          <h2 class="seccion__titulo">¿Cuánto pagarías al mes?</h2>
+          <p class="seccion__sub">
+            Simulación referencial con sistema de amortización francés (cuota fija).
+            No constituye una oferta de crédito: las condiciones finales las define cada institución financiera.
+          </p>
+        </div>
+
+        <form class="calc__form" id="form-credito">
+          <div class="campo">
+            <label for="c-monto">Valor del inmueble (USD)</label>
+            <input type="number" id="c-monto" value="85000" min="1000" step="1000" required>
+          </div>
+          <div class="campo">
+            <label for="c-entrada">Entrada: <output id="salida-entrada">20%</output></label>
+            <input type="range" id="c-entrada" min="0" max="70" step="5" value="20">
+          </div>
+          <div class="campo">
+            <label for="c-plazo">Plazo (años)</label>
+            <input type="number" id="c-plazo" value="15" min="1" max="30" step="1" required>
+          </div>
+          <div class="campo">
+            <label for="c-tasa">Tasa anual (%)</label>
+            <input type="number" id="c-tasa" value="9.5" min="0" max="30" step="0.1" required>
+          </div>
+
+          <div class="calc__resultado" aria-live="polite">
+            <p class="calc__etiqueta">Cuota mensual estimada</p>
+            <p class="calc__cuota" id="res-cuota">$0</p>
+            <dl class="calc__detalle">
+              <div><dt>Monto financiado</dt><dd id="res-financiado">$0</dd></div>
+              <div><dt>Total a pagar</dt><dd id="res-total">$0</dd></div>
+              <div><dt>Total de intereses</dt><dd id="res-interes">$0</dd></div>
+            </dl>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ SERVICIOS ============ -->
+    <section class="seccion" id="servicios">
+      <div class="contenedor">
+        <h2 class="seccion__titulo">Lo que hacemos por ti</h2>
+        <div class="servicios">
+          <article class="servicio">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M6 21V8l6-4 6 4v13M10 21v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            <h3>Avalúo comercial</h3>
+            <p>Valoramos tu inmueble con datos reales de transacciones comparables del sector.</p>
+          </article>
+          <article class="servicio">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zm0 0v5h5M9 13h6M9 17h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            <h3>Asesoría legal</h3>
+            <p>Revisión de escrituras, gravámenes, certificados y acompañamiento en notaría.</p>
+          </article>
+          <article class="servicio">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M3 7h18M3 17h10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <h3>Gestión de crédito</h3>
+            <p>Te conectamos con banca y cooperativas, y armamos tu carpeta de precalificación.</p>
+          </article>
+          <article class="servicio">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <h3>Administración de rentas</h3>
+            <p>Selección de inquilinos, cobro mensual y mantenimiento de tu propiedad.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TESTIMONIOS ============ -->
+    <section class="seccion seccion--alt">
+      <div class="contenedor">
+        <h2 class="seccion__titulo">Clientes que ya se mudaron</h2>
+        <div class="testimonios">
+          <figure class="testimonio">
+            <blockquote>Buscábamos algo cerca del colegio de los niños y en tres semanas ya teníamos escrituras. El acompañamiento en el banco marcó la diferencia.</blockquote>
+            <figcaption><strong>Familia Cabrera Ñauñay</strong><span>Casa en La Primavera</span></figcaption>
+          </figure>
+          <figure class="testimonio">
+            <blockquote>Vendí mi departamento en 40 días al precio del avalúo. Me explicaron cada documento sin apuro.</blockquote>
+            <figcaption><strong>Marcia Villagómez</strong><span>Departamento en el centro</span></figcaption>
+          </figure>
+          <figure class="testimonio">
+            <blockquote>Administran mi local comercial desde hace dos años. Cero meses de mora y reportes puntuales.</blockquote>
+            <figcaption><strong>Iván Quisphe</strong><span>Local en la Av. Daniel León Borja</span></figcaption>
+          </figure>
+        </div>
+        <p class="nota-legal">Testimonios ilustrativos de ejemplo. Reemplázalos por reseñas reales autorizadas antes de publicar el sitio.</p>
+      </div>
+    </section>
+
+    <!-- ============ CONTACTO ============ -->
+    <section class="seccion" id="contacto">
+      <div class="contenedor contacto">
+        <div class="contacto__info">
+          <h2 class="seccion__titulo">Hablemos de tu próximo inmueble</h2>
+          <p class="seccion__sub">Escríbenos y un asesor te responde el mismo día hábil.</p>
+          <ul class="contacto__lista">
+            <li><strong>Oficina:</strong> Av. Daniel León Borja y Carabobo, Riobamba</li>
+            <li><strong>Teléfono:</strong> (03) 000 0000</li>
+            <li><strong>WhatsApp:</strong> +593 99 000 0000</li>
+            <li><strong>Correo:</strong> contacto@andinapropiedades.ec</li>
+            <li><strong>Horario:</strong> Lun a Vie 09:00–18:00 · Sáb 09:00–13:00</li>
+          </ul>
+        </div>
+
+        <form class="contacto__form" id="form-contacto" novalidate>
+          <div class="campo">
+            <label for="ct-nombre">Nombre completo *</label>
+            <input type="text" id="ct-nombre" name="nombre" autocomplete="name" aria-describedby="err-nombre">
+            <p class="error" id="err-nombre" role="alert"></p>
+          </div>
+          <div class="campo">
+            <label for="ct-correo">Correo electrónico *</label>
+            <input type="email" id="ct-correo" name="correo" autocomplete="email" aria-describedby="err-correo">
+            <p class="error" id="err-correo" role="alert"></p>
+          </div>
+          <div class="campo">
+            <label for="ct-telefono">Teléfono *</label>
+            <input type="tel" id="ct-telefono" name="telefono" autocomplete="tel" placeholder="0999999999" aria-describedby="err-telefono">
+            <p class="error" id="err-telefono" role="alert"></p>
+          </div>
+          <div class="campo">
+            <label for="ct-interes">Propiedad de interés</label>
+            <select id="ct-interes" name="interes"></select>
+          </div>
+          <div class="campo campo--ancho">
+            <label for="ct-mensaje">Mensaje *</label>
+            <textarea id="ct-mensaje" name="mensaje" rows="4" aria-describedby="err-mensaje"></textarea>
+            <p class="error" id="err-mensaje" role="alert"></p>
+          </div>
+          <button type="submit" class="btn btn--primario">Enviar solicitud</button>
+          <p class="exito" id="mensaje-exito" role="status" hidden>¡Gracias! Registramos tu solicitud y te contactaremos pronto.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PIE ============ -->
+  <footer class="footer">
+    <div class="contenedor footer__inner">
+      <p class="footer__marca">Andina<strong>Propiedades</strong></p>
+      <p>Sitio de demostración con datos ficticios. Riobamba, Ecuador.</p>
+      <nav aria-label="Enlaces legales">
+        <a href="#inicio">Términos</a>
+        <a href="#inicio">Privacidad</a>
+        <a href="#contacto">Trabaja con nosotros</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- ============ MODAL DE DETALLE ============ -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal__fondo" data-cerrar></div>
+    <div class="modal__caja" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+      <button class="modal__cerrar" type="button" data-cerrar aria-label="Cerrar detalle">&times;</button>
+      <div class="modal__contenido" id="modal-contenido"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
