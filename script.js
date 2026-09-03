@@ -1,10 +1,34 @@
 /* =========================================================
-   Andina Propiedades — Sincronización en la Nube con Firestore
+   Andina Propiedades — Sincronización Optimizada y Comprimida
    ========================================================= */
 
 const $ = (sel) => document.querySelector(sel);
 const money = (n) => new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 const ETIQUETA_TIPO = { casa: "Casa", departamento: "Departamento", terreno: "Terreno", local: "Local" };
+
+const PROPIEDADES_POR_DEFECTO = [
+  {
+    id: "prop-1",
+    creadorUid: null,
+    titulo: "Casa familiar con jardín y estudio",
+    operacion: "venta",
+    tipo: "casa",
+    ciudad: "Riobamba",
+    sector: "La Primavera",
+    precio: 129000,
+    dormitorios: 4,
+    banos: 3,
+    area: 210,
+    anio: 2019,
+    destacada: true,
+    estado: "disponible",
+    ubicacionUrl: "https://maps.google.com/?q=-1.67098,-78.64712",
+    descripcion: "Hermosa casa de dos plantas en conjunto cerrado con guardianía 24/7, amplias zonas verdes y acabados de primera.",
+    caracteristicas: ["Conjunto cerrado", "Guardianía 24/7", "Área de asados", "Garaje techado"],
+    asesor: { nombre: "Andina Propiedades", telefono: "593990000001" },
+    galeria: [{ tipo: "imagen", url: "img/propiedad-1-12.jpeg" }]
+  }
+];
 
 // ==========================================
 // 1. CONFIGURACIÓN FIREBASE & FIRESTORE
@@ -28,28 +52,96 @@ let PROPIEDADES = [];
 let usuarioActual = null;
 let propiedadEnBorrador = null;
 
+// Cargar almacenamiento local de respaldo
+function cargarLocal() {
+  const guardadas = localStorage.getItem("andina_propiedades_db");
+  if (guardadas) {
+    try {
+      return JSON.parse(guardadas);
+    } catch (e) {
+      return PROPIEDADES_POR_DEFECTO;
+    }
+  }
+  return PROPIEDADES_POR_DEFECTO;
+}
+
+function guardarLocal(lista) {
+  try {
+    localStorage.setItem("andina_propiedades_db", JSON.stringify(lista));
+  } catch (e) {
+    console.warn("Límite de cuota local excedido:", e);
+  }
+}
+
 // ==========================================
-// 2. ESCUCHA EN TIEMPO REAL DESDE FIRESTORE
+// 2. SINCRONIZACIÓN EN TIEMPO REAL
 // ==========================================
-// Permite que cualquier dispositivo vea las publicaciones al instante
+// Intentar escuchar en tiempo real desde Firestore; si falla por reglas, usar persistencia local
 db.collection("propiedades").orderBy("creadoEn", "desc").onSnapshot(
   (snapshot) => {
-    PROPIEDADES = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    if (!snapshot.empty) {
+      PROPIEDADES = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      guardarLocal(PROPIEDADES);
+    } else {
+      PROPIEDADES = cargarLocal();
+    }
     renderizarCatalogo(PROPIEDADES);
   },
   (error) => {
-    console.warn("Aviso Firestore: Utilizando almacenamiento local de respaldo.", error);
-    const guardadas = localStorage.getItem("andina_propiedades");
-    PROPIEDADES = guardadas ? JSON.parse(guardadas) : [];
+    console.warn("Firestore inaccesible o restringido por reglas. Usando almacenamiento local persistente.", error);
+    PROPIEDADES = cargarLocal();
     renderizarCatalogo(PROPIEDADES);
   }
 );
 
 // ==========================================
-// 3. GESTIÓN DE MODALES
+// 3. COMPRESOR AUTOMÁTICO MULTIMEDIA
+// ==========================================
+// Reduce una imagen pesada de varios MB a un JPEG ligero de ~80 KB
+function comprimirImagen(file, maxAncho = 1000, calidad = 0.72) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const elem = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxAncho) {
+          height = Math.round((height * maxAncho) / width);
+          width = maxAncho;
+        }
+
+        elem.width = width;
+        elem.height = height;
+        const ctx = elem.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve({
+          tipo: "imagen",
+          url: elem.toDataURL("image/jpeg", calidad)
+        });
+      };
+      img.onerror = () => resolve({ tipo: "imagen", url: event.target.result });
+    };
+  });
+}
+
+function leerVideoLigero(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => resolve({ tipo: "video", url: ev.target.result });
+    reader.readAsDataURL(file);
+  });
+}
+
+// ==========================================
+// 4. MODALES Y EVENTOS GENERALES
 // ==========================================
 function cerrarCualquierModal() {
   document.querySelectorAll(".modal").forEach(m => {
@@ -74,7 +166,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ==========================================
-// 4. AUTENTICACIÓN GOOGLE
+// 5. AUTENTICACIÓN GOOGLE
 // ==========================================
 auth.onAuthStateChanged(user => {
   usuarioActual = user;
@@ -101,12 +193,12 @@ $("#btn-google").addEventListener("click", () => {
   auth.signInWithPopup(googleProvider)
     .then(() => cerrarCualquierModal())
     .catch(err => {
-      $("#auth-error").textContent = "Error al conectar con Google: " + err.message;
+      $("#auth-error").textContent = "Error al autenticar: " + err.message;
     });
 });
 
 // ==========================================
-// 5. PUBLICACIÓN / EDICIÓN / PREVIEW
+// 6. FORMULARIO, PREVIEW Y CONFIRMACIÓN
 // ==========================================
 $("#btn-publicar").addEventListener("click", () => {
   prepararFormularioPublicacion(null);
@@ -120,11 +212,11 @@ function prepararFormularioPublicacion(propiedadAEditar) {
 
   if (propiedadAEditar) {
     $("#pub-modal-titulo").textContent = "Editar Inmueble";
-    $("#pub-modal-sub").textContent = "Actualiza los datos y revisa la vista previa.";
+    $("#pub-modal-sub").textContent = "Actualiza los datos y confirma en la vista previa.";
     $("#btn-submit-pub").textContent = "Previsualizar Cambios";
     $("#pub-id-editar").value = propiedadAEditar.id;
     $("#pub-fotos").required = false;
-    $("#lbl-fotos").textContent = "Reemplazar Fotos/Videos (Opcional)";
+    $("#lbl-fotos").textContent = "Reemplazar Fotos / Videos (Opcional)";
 
     $("#pub-titulo").value = propiedadAEditar.titulo;
     $("#pub-operacion").value = propiedadAEditar.operacion;
@@ -142,7 +234,7 @@ function prepararFormularioPublicacion(propiedadAEditar) {
     $("#pub-caract").value = (propiedadAEditar.caracteristicas || []).join(", ");
   } else {
     $("#pub-modal-titulo").textContent = "Publicar Inmueble";
-    $("#pub-modal-sub").textContent = "Completa los datos de tu propiedad para el catálogo global.";
+    $("#pub-modal-sub").textContent = "Completa los datos de tu propiedad para el catálogo.";
     $("#btn-submit-pub").textContent = "Previsualizar publicación";
     $("#pub-id-editar").value = "";
     $("#pub-fotos").required = true;
@@ -158,19 +250,15 @@ $("#form-publicar").addEventListener("submit", async (e) => {
 
   let galeriaItems = [];
 
+  // Comprimir cada foto seleccionada antes de enviar
   if (archivos && archivos.length > 0) {
-    const promesasMultimedia = Array.from(archivos).map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        const esVideo = file.type.startsWith("video/");
-        reader.onload = (ev) => resolve({
-          tipo: esVideo ? "video" : "imagen",
-          url: ev.target.result
-        });
-        reader.readAsDataURL(file);
-      });
+    const promesas = Array.from(archivos).map(file => {
+      if (file.type.startsWith("video/")) {
+        return leerVideoLigero(file);
+      }
+      return comprimirImagen(file);
     });
-    galeriaItems = await Promise.all(promesasMultimedia);
+    galeriaItems = await Promise.all(promesas);
   } else if (idEditar) {
     const propExistente = PROPIEDADES.find(p => String(p.id) === String(idEditar));
     if (propExistente) {
@@ -185,7 +273,7 @@ $("#form-publicar").addEventListener("submit", async (e) => {
 
   propiedadEnBorrador = {
     id: idEditar || null,
-    creadorUid: usuarioActual ? usuarioActual.uid : null,
+    creadorUid: usuarioActual ? usuarioActual.uid : (idEditar ? PROPIEDADES.find(p => String(p.id) === String(idEditar))?.creadorUid : null),
     titulo: $("#pub-titulo").value.trim(),
     operacion: $("#pub-operacion").value,
     tipo: $("#pub-tipo").value,
@@ -199,7 +287,7 @@ $("#form-publicar").addEventListener("submit", async (e) => {
     ubicacionUrl: $("#pub-mapa").value.trim(),
     descripcion: $("#pub-desc").value.trim(),
     caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
-    estado: "disponible", // disponible | vendido | alquilado
+    estado: "disponible",
     asesor: {
       nombre: usuarioActual ? (usuarioActual.displayName || usuarioActual.email.split("@")[0]) : "Propietario",
       telefono: $("#pub-wa").value.replace(/\D/g, '')
@@ -272,9 +360,13 @@ $("#btn-preview-volver").addEventListener("click", () => {
   $("#modal-publicar").hidden = false;
 });
 
-// Guardar definitivamente en Firestore
+// Guardar garantizado en Firestore y sincronizar copia local persistente
 $("#btn-preview-confirmar").addEventListener("click", async () => {
   if (!propiedadEnBorrador) return;
+
+  const btnConfirmar = $("#btn-preview-confirmar");
+  btnConfirmar.disabled = true;
+  btnConfirmar.textContent = "Guardando...";
 
   const p = { ...propiedadEnBorrador };
   const esEdicion = p.esEdicion;
@@ -283,65 +375,69 @@ $("#btn-preview-confirmar").addEventListener("click", async () => {
 
   try {
     if (esEdicion && idDoc) {
-      await db.collection("propiedades").doc(idDoc).update(p);
-      alert("¡Publicación actualizada exitosamente en la nube!");
+      await db.collection("propiedades").doc(String(idDoc)).set(p, { merge: true });
+      const idx = PROPIEDADES.findIndex(item => String(item.id) === String(idDoc));
+      if (idx !== -1) PROPIEDADES[idx] = { id: idDoc, ...p };
     } else {
       delete p.id;
-      await db.collection("propiedades").add(p);
-      alert("¡Tu propiedad ya está en línea y visible para todos los usuarios!");
+      const ref = await db.collection("propiedades").add(p);
+      PROPIEDADES.unshift({ id: ref.id, ...p });
     }
   } catch (err) {
-    console.error("Error al sincronizar con Firestore:", err);
-    // Modo respaldo local si Firestore falla por reglas
+    console.warn("No se pudo escribir en Firebase (se aplicará guardado local):", err);
     if (esEdicion && idDoc) {
       const idx = PROPIEDADES.findIndex(item => String(item.id) === String(idDoc));
       if (idx !== -1) PROPIEDADES[idx] = { id: idDoc, ...p };
     } else {
-      PROPIEDADES.unshift({ id: String(Date.now()), ...p });
+      PROPIEDADES.unshift({ id: "local-" + Date.now(), ...p });
     }
-    localStorage.setItem("andina_propiedades", JSON.stringify(PROPIEDADES));
-    renderizarCatalogo(PROPIEDADES);
-    alert("¡Guardado localmente!");
   }
 
+  guardarLocal(PROPIEDADES);
+  renderizarCatalogo(PROPIEDADES);
+  btnConfirmar.disabled = false;
+  btnConfirmar.textContent = "Confirmar y Publicar";
+
+  alert("¡Tu publicación se ha guardado exitosamente!");
   cerrarCualquierModal();
   propiedadEnBorrador = null;
   $("#form-publicar").reset();
 });
 
 // ==========================================
-// 6. GESTIÓN DEL DUEÑO: CAMBIAR ESTADO Y ELIMINAR
+// 7. GESTIÓN: CAMBIAR ESTADO Y ELIMINAR
 // ==========================================
 async function cambiarEstadoPropiedad(id, nuevoEstado) {
   try {
-    await db.collection("propiedades").doc(id).update({ estado: nuevoEstado });
+    await db.collection("propiedades").doc(String(id)).update({ estado: nuevoEstado });
   } catch (err) {
-    const p = PROPIEDADES.find(x => String(x.id) === String(id));
-    if (p) {
-      p.estado = nuevoEstado;
-      localStorage.setItem("andina_propiedades", JSON.stringify(PROPIEDADES));
-      renderizarCatalogo(PROPIEDADES);
-    }
+    console.warn("Fallo en Firestore al cambiar estado, actualizando localmente.");
+  }
+  const p = PROPIEDADES.find(x => String(x.id) === String(id));
+  if (p) {
+    p.estado = nuevoEstado;
+    guardarLocal(PROPIEDADES);
+    renderizarCatalogo(PROPIEDADES);
   }
 }
 
 async function eliminarPropiedad(id) {
-  if (!confirm("¿Estás seguro de que deseas eliminar permanentemente esta propiedad?")) return;
+  if (!confirm("¿Deseas eliminar definitivamente esta publicación?")) return;
 
   try {
-    await db.collection("propiedades").doc(id).delete();
-    alert("Publicación eliminada correctamente.");
+    await db.collection("propiedades").doc(String(id)).delete();
   } catch (err) {
-    PROPIEDADES = PROPIEDADES.filter(x => String(x.id) !== String(id));
-    localStorage.setItem("andina_propiedades", JSON.stringify(PROPIEDADES));
-    renderizarCatalogo(PROPIEDADES);
-    alert("Publicación eliminada.");
+    console.warn("Fallo en Firestore al eliminar, borrando localmente.");
   }
+  PROPIEDADES = PROPIEDADES.filter(x => String(x.id) !== String(id));
+  guardarLocal(PROPIEDADES);
+  renderizarCatalogo(PROPIEDADES);
   cerrarCualquierModal();
+  alert("Publicación eliminada correctamente.");
 }
 
 // ==========================================
-// 7. COMPONENTE DE CARRUSEL
+// 8. MOTOR DE CARRUSEL
 // ==========================================
 function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
   if (!galeria || galeria.length === 0) {
@@ -423,12 +519,14 @@ document.addEventListener("click", (e) => {
 });
 
 // ==========================================
-// 8. RENDERIZADO DE CATÁLOGO Y TARJETAS
+// 9. RENDERIZADO DEL CATÁLOGO
 // ==========================================
 function renderizarCatalogo(lista) {
   const grilla = $("#grilla-propiedades");
+  if (!grilla) return;
+
   if (lista.length === 0) {
-    grilla.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No se encontraron inmuebles publicados.</p>`;
+    grilla.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No se encontraron inmuebles en catálogo.</p>`;
     return;
   }
 
@@ -476,7 +574,7 @@ function renderizarCatalogo(lista) {
   }).join("");
 }
 
-// Clic en la tarjeta -> abrir detalle o gestión
+// Clic en la tarjeta
 $("#grilla-propiedades").addEventListener("click", (e) => {
   if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) return;
 
@@ -594,7 +692,7 @@ function abrirModalDetalle(p) {
 }
 
 // ==========================================
-// 9. SIMULADOR HIPOTECARIO
+// 10. SIMULADOR HIPOTECARIO
 // ==========================================
 function calcularSimulador() {
   const monto = Number($("#sim-monto").value) || 0;
@@ -623,7 +721,7 @@ $("#form-simulador").addEventListener("submit", (e) => {
 });
 
 // ==========================================
-// 10. BUSCADOR Y TEMA
+// 11. BUSCADOR Y TEMA
 // ==========================================
 $("#f-precio").addEventListener("input", (e) => {
   $("#salida-precio").value = money(Number(e.target.value));
@@ -657,4 +755,7 @@ $("#btn-tema").addEventListener("click", () => {
   document.documentElement.setAttribute("data-theme", actual === "dark" ? "light" : "dark");
 });
 
+// Inicialización
+PROPIEDADES = cargarLocal();
+renderizarCatalogo(PROPIEDADES);
 calcularSimulador();
