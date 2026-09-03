@@ -1,10 +1,11 @@
 /* =========================================================
-   Andina Propiedades — Lógica Principal
+   Andina Propiedades — Lógica con Carrusel, Video y Edición
    ========================================================= */
 
 const PROPIEDADES_POR_DEFECTO = [
   {
     id: 1,
+    creadorUid: null, // Propiedad inicial del sistema
     titulo: "Casa familiar con jardín y estudio",
     operacion: "venta",
     tipo: "casa",
@@ -17,10 +18,13 @@ const PROPIEDADES_POR_DEFECTO = [
     parqueaderos: 2,
     anio: 2019,
     destacada: true,
-    descripcion: "Casa amplia de dos plantas con acabados de primera, sala de estar, patio posterior con césped sintético y seguridad privada permanente.",
+    ubicacionUrl: "https://maps.google.com/?q=-1.67098,-78.64712",
+    descripcion: "Hermosa casa de dos plantas en conjunto cerrado con guardianía 24/7, amplias zonas verdes y acabados de primera.",
     caracteristicas: ["Conjunto cerrado", "Guardianía 24/7", "Área de asados", "Garaje techado"],
     asesor: { nombre: "Andina Propiedades", telefono: "593990000001" },
-    galeria: ["img/propiedad-1-12.jpeg"]
+    galeria: [
+      { tipo: "imagen", url: "img/propiedad-1-12.jpeg" }
+    ]
   }
 ];
 
@@ -28,7 +32,17 @@ function cargarPropiedades() {
   const guardadas = localStorage.getItem("andina_propiedades");
   if (guardadas) {
     try {
-      return JSON.parse(guardadas);
+      const parsed = JSON.parse(guardadas);
+      // Normalizar formato multimedia para propiedades previas
+      return parsed.map(p => {
+        if (p.galeria && typeof p.galeria[0] === "string") {
+          p.galeria = p.galeria.map(url => ({
+            tipo: url.startsWith("data:video") ? "video" : "imagen",
+            url: url
+          }));
+        }
+        return p;
+      });
     } catch (e) {
       return PROPIEDADES_POR_DEFECTO;
     }
@@ -37,24 +51,26 @@ function cargarPropiedades() {
 }
 
 let PROPIEDADES = cargarPropiedades();
+let usuarioActual = null;
 
 const $ = (sel) => document.querySelector(sel);
 const money = (n) => new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 const ETIQUETA_TIPO = { casa: "Casa", departamento: "Departamento", terreno: "Terreno", local: "Local" };
 
 // ==========================================
-// 1. GESTIÓN GLOBAL DE MODALES (CIERRE EFECTIVO)
+// 1. GESTIÓN GLOBAL DE MODALES (CIERRE)
 // ==========================================
 function cerrarCualquierModal() {
   document.querySelectorAll(".modal").forEach(m => {
     m.hidden = true;
+    // Detener videos al cerrar modal
+    m.querySelectorAll("video").forEach(v => v.pause());
   });
   document.body.classList.remove("sin-scroll");
   const authErr = $("#auth-error");
   if (authErr) authErr.textContent = "";
 }
 
-// Delegación global: cualquier clic sobre un elemento con data-cerrar o botón .modal__cerrar
 document.addEventListener("click", (e) => {
   const targetCerrar = e.target.closest("[data-cerrar]") || e.target.closest(".modal__cerrar");
   if (targetCerrar) {
@@ -63,11 +79,8 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Cerrar con tecla Escape
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    cerrarCualquierModal();
-  }
+  if (e.key === "Escape") cerrarCualquierModal();
 });
 
 // ==========================================
@@ -88,9 +101,10 @@ const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
 // ==========================================
-// 3. ESTADO DE SESIÓN (SOLO GOOGLE)
+// 3. ESTADO DE AUTENTICACIÓN
 // ==========================================
 auth.onAuthStateChanged(user => {
+  usuarioActual = user;
   if (user) {
     $("#btn-login-modal").hidden = true;
     $("#btn-logout").hidden = false;
@@ -101,6 +115,8 @@ auth.onAuthStateChanged(user => {
     $("#btn-logout").hidden = true;
     $("#btn-publicar").hidden = true;
   }
+  // Re-renderizar catálogo para actualizar botones de edición según el usuario
+  renderizarCatalogo(PROPIEDADES);
 });
 
 $("#btn-logout").addEventListener("click", () => auth.signOut());
@@ -113,124 +129,313 @@ $("#btn-google").addEventListener("click", () => {
   auth.signInWithPopup(googleProvider)
     .then(() => cerrarCualquierModal())
     .catch(err => {
-      $("#auth-error").textContent = "Error al iniciar sesión: " + err.message;
+      $("#auth-error").textContent = "Error al conectar con Google: " + err.message;
     });
 });
 
 // ==========================================
-// 4. PUBLICACIÓN DE INMUEBLES
+// 4. PUBLICACIÓN Y EDICIÓN DE PROPIEDADES
 // ==========================================
-$("#btn-publicar").addEventListener("click", () => { 
+$("#btn-publicar").addEventListener("click", () => {
+  prepararFormularioPublicacion(null);
   $("#modal-publicar").hidden = false; 
   document.body.classList.add("sin-scroll");
 });
 
+function prepararFormularioPublicacion(propiedadAEditar) {
+  const form = $("#form-publicar");
+  form.reset();
+
+  if (propiedadAEditar) {
+    $("#pub-modal-titulo").textContent = "Editar Inmueble";
+    $("#pub-modal-sub").textContent = "Actualiza los datos de tu publicación.";
+    $("#btn-submit-pub").textContent = "Guardar Cambios";
+    $("#pub-id-editar").value = propiedadAEditar.id;
+    $("#pub-fotos").required = false;
+    $("#lbl-fotos").textContent = "Reemplazar Fotos / Videos (Opcional)";
+
+    $("#pub-titulo").value = propiedadAEditar.titulo;
+    $("#pub-operacion").value = propiedadAEditar.operacion;
+    $("#pub-tipo").value = propiedadAEditar.tipo;
+    $("#pub-ciudad").value = propiedadAEditar.ciudad;
+    $("#pub-sector").value = propiedadAEditar.sector;
+    $("#pub-precio").value = propiedadAEditar.precio;
+    $("#pub-dorm").value = propiedadAEditar.dormitorios;
+    $("#pub-banos").value = propiedadAEditar.banos;
+    $("#pub-area").value = propiedadAEditar.area;
+    $("#pub-anio").value = propiedadAEditar.anio;
+    $("#pub-mapa").value = propiedadAEditar.ubicacionUrl || "";
+    $("#pub-wa").value = propiedadAEditar.asesor.telefono;
+    $("#pub-desc").value = propiedadAEditar.descripcion;
+    $("#pub-caract").value = (propiedadAEditar.caracteristicas || []).join(", ");
+  } else {
+    $("#pub-modal-titulo").textContent = "Publicar Inmueble";
+    $("#pub-modal-sub").textContent = "Completa los datos de tu propiedad para añadirla al catálogo.";
+    $("#btn-submit-pub").textContent = "Publicar propiedad";
+    $("#pub-id-editar").value = "";
+    $("#pub-fotos").required = true;
+    $("#lbl-fotos").textContent = "Fotos y Videos (Archivos multimedia) *";
+  }
+}
+
 $("#form-publicar").addEventListener("submit", async (e) => {
   e.preventDefault();
 
+  const idEditar = $("#pub-id-editar").value;
   const archivos = $("#pub-fotos").files;
-  if (!archivos || archivos.length === 0) {
-    alert("Por favor selecciona al menos una fotografía del inmueble.");
-    return;
+
+  let galeriaItems = [];
+
+  // Procesar nuevos archivos si se seleccionaron
+  if (archivos && archivos.length > 0) {
+    const promesasMultimedia = Array.from(archivos).map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        const esVideo = file.type.startsWith("video/");
+        reader.onload = (ev) => resolve({
+          tipo: esVideo ? "video" : "imagen",
+          url: ev.target.result
+        });
+        reader.readAsDataURL(file);
+      });
+    });
+    galeriaItems = await Promise.all(promesasMultimedia);
   }
 
-  const promesasFotos = Array.from(archivos).map(file => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => resolve(ev.target.result);
-      reader.readAsDataURL(file);
-    });
-  });
-  const galeriaBase64 = await Promise.all(promesasFotos);
+  if (idEditar) {
+    // Modo Edición: Actualizar propiedad existente
+    const idx = PROPIEDADES.findIndex(p => p.id === Number(idEditar));
+    if (idx !== -1) {
+      // Seguridad: verificar creador
+      if (PROPIEDADES[idx].creadorUid !== usuarioActual.uid) {
+        alert("No tienes permiso para modificar esta propiedad.");
+        return;
+      }
 
-  const nuevaPropiedad = {
-    id: Date.now(),
-    titulo: $("#pub-titulo").value.trim(),
-    operacion: $("#pub-operacion").value,
-    tipo: $("#pub-tipo").value,
-    ciudad: $("#pub-ciudad").value.trim(),
-    sector: $("#pub-sector").value.trim(),
-    precio: Number($("#pub-precio").value),
-    dormitorios: Number($("#pub-dorm").value) || 0,
-    banos: Number($("#pub-banos").value) || 0,
-    area: Number($("#pub-area").value) || 0,
-    anio: Number($("#pub-anio").value) || 2024,
-    descripcion: $("#pub-desc").value.trim(),
-    caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
-    asesor: {
-      nombre: auth.currentUser ? auth.currentUser.displayName || auth.currentUser.email.split("@")[0] : "Propietario",
-      telefono: $("#pub-wa").value.replace(/\D/g, '')
-    },
-    galeria: galeriaBase64,
-    destacada: true
-  };
+      PROPIEDADES[idx].titulo = $("#pub-titulo").value.trim();
+      PROPIEDADES[idx].operacion = $("#pub-operacion").value;
+      PROPIEDADES[idx].tipo = $("#pub-tipo").value;
+      PROPIEDADES[idx].ciudad = $("#pub-ciudad").value.trim();
+      PROPIEDADES[idx].sector = $("#pub-sector").value.trim();
+      PROPIEDADES[idx].precio = Number($("#pub-precio").value);
+      PROPIEDADES[idx].dormitorios = Number($("#pub-dorm").value) || 0;
+      PROPIEDADES[idx].banos = Number($("#pub-banos").value) || 0;
+      PROPIEDADES[idx].area = Number($("#pub-area").value) || 0;
+      PROPIEDADES[idx].anio = Number($("#pub-anio").value) || 2024;
+      PROPIEDADES[idx].ubicacionUrl = $("#pub-mapa").value.trim();
+      PROPIEDADES[idx].asesor.telefono = $("#pub-wa").value.replace(/\D/g, '');
+      PROPIEDADES[idx].descripcion = $("#pub-desc").value.trim();
+      PROPIEDADES[idx].caracteristicas = $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [];
 
-  PROPIEDADES.unshift(nuevaPropiedad);
+      if (galeriaItems.length > 0) {
+        PROPIEDADES[idx].galeria = galeriaItems;
+      }
+      alert("¡Propiedad actualizada exitosamente!");
+    }
+  } else {
+    // Modo Nueva Publicación
+    if (!galeriaItems.length) {
+      alert("Por favor selecciona al menos una foto o video.");
+      return;
+    }
+
+    const nuevaPropiedad = {
+      id: Date.now(),
+      creadorUid: usuarioActual ? usuarioActual.uid : null,
+      titulo: $("#pub-titulo").value.trim(),
+      operacion: $("#pub-operacion").value,
+      tipo: $("#pub-tipo").value,
+      ciudad: $("#pub-ciudad").value.trim(),
+      sector: $("#pub-sector").value.trim(),
+      precio: Number($("#pub-precio").value),
+      dormitorios: Number($("#pub-dorm").value) || 0,
+      banos: Number($("#pub-banos").value) || 0,
+      area: Number($("#pub-area").value) || 0,
+      anio: Number($("#pub-anio").value) || 2024,
+      ubicacionUrl: $("#pub-mapa").value.trim(),
+      descripcion: $("#pub-desc").value.trim(),
+      caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
+      asesor: {
+        nombre: usuarioActual ? usuarioActual.displayName || usuarioActual.email.split("@")[0] : "Propietario",
+        telefono: $("#pub-wa").value.replace(/\D/g, '')
+      },
+      galeria: galeriaItems,
+      destacada: true
+    };
+
+    PROPIEDADES.unshift(nuevaPropiedad);
+    alert("¡Tu propiedad ha sido publicada exitosamente!");
+  }
+
   localStorage.setItem("andina_propiedades", JSON.stringify(PROPIEDADES));
-
   renderizarCatalogo(PROPIEDADES);
   cerrarCualquierModal();
-  $("#form-publicar").reset();
-  alert("¡Tu propiedad ha sido publicada exitosamente!");
 });
 
 // ==========================================
-// 5. RENDERIZADO DE CATÁLOGO Y DETALLES
+// 5. COMPONENTE DE CARRUSEL MULTIMEDIA
+// ==========================================
+function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
+  if (!galeria || galeria.length === 0) {
+    return `<div class="carrusel-slide activo"><img src="img/propiedad-1-12.jpeg" alt="Sin imagen"></div>`;
+  }
+
+  const slides = galeria.map((item, index) => {
+    const esPrimerSlide = index === 0 ? "activo" : "";
+    if (item.tipo === "video") {
+      return `
+        <div class="carrusel-slide ${esPrimerSlide}" data-slide="${index}">
+          <video ${esModal ? 'controls' : 'muted loop autoplay playsinline'} class="carrusel-media">
+            <source src="${item.url}">
+            Tu navegador no soporta video.
+          </video>
+          <span class="badge-multimedia">▶ Video</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="carrusel-slide ${esPrimerSlide}" data-slide="${index}">
+        <img src="${item.url}" class="carrusel-media" alt="Inmueble">
+      </div>
+    `;
+  }).join("");
+
+  const controles = galeria.length > 1 ? `
+    <button class="carrusel-btn prev" data-dir="-1" aria-label="Anterior">&#10094;</button>
+    <button class="carrusel-btn next" data-dir="1" aria-label="Siguiente">&#10095;</button>
+    <span class="carrusel-contador">1 / ${galeria.length}</span>
+  ` : "";
+
+  return `
+    <div class="carrusel" id="${idContenedor}">
+      ${slides}
+      ${controles}
+    </div>
+  `;
+}
+
+function cambiarSlide(carruselEl, direccion) {
+  const slides = carruselEl.querySelectorAll(".carrusel-slide");
+  if (slides.length <= 1) return;
+
+  let indiceActual = Array.from(slides).findIndex(s => s.classList.contains("activo"));
+  
+  // Pausar video actual si existía
+  const videoActual = slides[indiceActual].querySelector("video");
+  if (videoActual) videoActual.pause();
+
+  slides[indiceActual].classList.remove("activo");
+
+  let nuevoIndice = indiceActual + direccion;
+  if (nuevoIndice >= slides.length) nuevoIndice = 0;
+  if (nuevoIndice < 0) nuevoIndice = slides.length - 1;
+
+  slides[nuevoIndice].classList.add("activo");
+
+  // Reproducir video nuevo si existe
+  const videoNuevo = slides[nuevoIndice].querySelector("video");
+  if (videoNuevo) videoNuevo.play().catch(() => {});
+
+  const contador = carruselEl.querySelector(".carrusel-contador");
+  if (contador) {
+    contador.textContent = `${nuevoIndice + 1} / ${slides.length}`;
+  }
+}
+
+// Delegación de clic para botones de carrusel (tarjetas y modal)
+document.addEventListener("click", (e) => {
+  const btnCarrusel = e.target.closest(".carrusel-btn");
+  if (btnCarrusel) {
+    e.stopPropagation(); // Evita abrir el modal al presionar siguiente/anterior
+    const carrusel = btnCarrusel.closest(".carrusel");
+    const dir = Number(btnCarrusel.dataset.dir);
+    cambiarSlide(carrusel, dir);
+  }
+});
+
+// ==========================================
+// 6. RENDERIZADO DE CATÁLOGO
 // ==========================================
 function renderizarCatalogo(lista) {
   const grilla = $("#grilla-propiedades");
   if (lista.length === 0) {
-    grilla.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No se encontraron inmuebles que coincidan con tu búsqueda.</p>`;
+    grilla.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No se encontraron inmuebles.</p>`;
     return;
   }
 
-  grilla.innerHTML = lista.map(p => `
-    <article class="tarjeta" data-id="${p.id}">
-      <div class="tarjeta__portada">
-        <img class="tarjeta__imagen" src="${p.galeria[0]}" alt="${p.titulo}">
-        <span class="chip chip--operacion">${p.operacion === "venta" ? "En Venta" : "En Alquiler"}</span>
-        ${p.destacada ? '<span class="chip chip--destacada">Destacada</span>' : ''}
-        <div class="tarjeta__portada-sombra"></div>
-      </div>
-      <div class="tarjeta__cuerpo">
-        <div class="tarjeta__precio-fila">
-          <span class="tarjeta__precio">${money(p.precio)}</span>
-          <span class="badge-tipo">${ETIQUETA_TIPO[p.tipo] || p.tipo}</span>
+  grilla.innerHTML = lista.map(p => {
+    const esPropietario = usuarioActual && p.creadorUid && usuarioActual.uid === p.creadorUid;
+
+    return `
+      <article class="tarjeta" data-id="${p.id}">
+        <div class="tarjeta__portada">
+          ${generarHtmlCarrusel(p.galeria, `carrusel-tarjeta-${p.id}`)}
+          <span class="chip chip--operacion">${p.operacion === "venta" ? "En Venta" : "En Alquiler"}</span>
+          ${p.destacada ? '<span class="chip chip--destacada">Destacada</span>' : ''}
+          ${esPropietario ? `<button class="btn-editar-tarjeta" data-editar="${p.id}" title="Editar mi propiedad">✎ Editar</button>` : ''}
         </div>
-        <h3 class="tarjeta__titulo">${p.titulo}</h3>
-        <p class="tarjeta__sector">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          ${p.sector}, ${p.ciudad}
-        </p>
-        
-        <ul class="tarjeta__detalles">
-          ${p.dormitorios > 0 ? `<li><strong>${p.dormitorios}</strong> habs.</li>` : ''}
-          ${p.banos > 0 ? `<li><strong>${p.banos}</strong> baños</li>` : ''}
-          ${p.area > 0 ? `<li><strong>${p.area}</strong> m²</li>` : ''}
-          ${p.anio ? `<li>Año <strong>${p.anio}</strong></li>` : ''}
-        </ul>
-      </div>
-    </article>
-  `).join("");
+        <div class="tarjeta__cuerpo">
+          <div class="tarjeta__precio-fila">
+            <span class="tarjeta__precio">${money(p.precio)}</span>
+            <span class="badge-tipo">${ETIQUETA_TIPO[p.tipo] || p.tipo}</span>
+          </div>
+          <h3 class="tarjeta__titulo">${p.titulo}</h3>
+          <p class="tarjeta__sector">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            ${p.sector}, ${p.ciudad}
+          </p>
+          
+          <ul class="tarjeta__detalles">
+            ${p.dormitorios > 0 ? `<li><strong>${p.dormitorios}</strong> habs.</li>` : ''}
+            ${p.banos > 0 ? `<li><strong>${p.banos}</strong> baños</li>` : ''}
+            ${p.area > 0 ? `<li><strong>${p.area}</strong> m²</li>` : ''}
+            ${p.anio ? `<li>Año <strong>${p.anio}</strong></li>` : ''}
+          </ul>
+        </div>
+      </article>
+    `;
+  }).join("");
 }
 
-// Clic en propiedad -> abrir modal
+// Clic en la tarjeta o botón editar
 $("#grilla-propiedades").addEventListener("click", (e) => {
+  // Editar directo desde la tarjeta
+  const btnEditar = e.target.closest("[data-editar]");
+  if (btnEditar) {
+    e.stopPropagation();
+    const id = Number(btnEditar.dataset.editar);
+    const p = PROPIEDADES.find(x => x.id === id);
+    if (p) {
+      prepararFormularioPublicacion(p);
+      $("#modal-publicar").hidden = false;
+      document.body.classList.add("sin-scroll");
+    }
+    return;
+  }
+
+  // Si hizo clic en un control del carrusel, no abrir modal
+  if (e.target.closest(".carrusel-btn")) return;
+
+  // Abrir detalle
   const tarjeta = e.target.closest(".tarjeta");
   if (!tarjeta) return;
   const p = PROPIEDADES.find(x => x.id === Number(tarjeta.dataset.id));
   if (!p) return;
 
-  const mensajeWA = encodeURIComponent(`Hola, vi en Los Andes su anuncio de "${p.titulo}" por ${money(p.precio)}. ¿Podría darme más información?`);
+  const esPropietario = usuarioActual && p.creadorUid && usuarioActual.uid === p.creadorUid;
+  const mensajeWA = encodeURIComponent(`Hola, vi en Los Andes su anuncio "${p.titulo}" por ${money(p.precio)}. ¿Podría darme más información?`);
 
   $("#modal-contenido").innerHTML = `
     <div class="modal__imagen-wrap">
-      <img src="${p.galeria[0]}" alt="${p.titulo}">
+      ${generarHtmlCarrusel(p.galeria, `carrusel-modal-${p.id}`, true)}
       <span class="chip chip--operacion">${p.operacion === "venta" ? "En Venta" : "En Alquiler"}</span>
     </div>
     <div class="modal__detalles">
       <div class="modal__header-info">
-        <span class="badge-tipo">${ETIQUETA_TIPO[p.tipo] || p.tipo}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="badge-tipo">${ETIQUETA_TIPO[p.tipo] || p.tipo}</span>
+          ${esPropietario ? `<button class="btn btn--secundario btn--sm" id="btn-modal-editar" data-id="${p.id}">✎ Editar esta publicación</button>` : ''}
+        </div>
         <h2>${p.titulo}</h2>
         <p class="modal__ubicacion">${p.sector}, ${p.ciudad}</p>
         <p class="modal__precio">${money(p.precio)}</p>
@@ -257,25 +462,44 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
         </div>
       ` : ''}
 
-      <a class="btn btn--wa btn--full" href="https://wa.me/${p.asesor.telefono}?text=${mensajeWA}" target="_blank" rel="noopener">
-        Contactar directamente por WhatsApp
-      </a>
+      <div class="modal__acciones-contacto">
+        ${p.ubicacionUrl ? `
+          <a class="btn btn--secundario btn--full" href="${p.ubicacionUrl}" target="_blank" rel="noopener">
+            📍 Ver Ubicación en el Mapa
+          </a>
+        ` : ''}
+        <a class="btn btn--wa btn--full" href="https://wa.me/${p.asesor.telefono}?text=${mensajeWA}" target="_blank" rel="noopener">
+          Contactar por WhatsApp
+        </a>
+      </div>
     </div>
   `;
+
+  // Listener para botón editar dentro del modal
+  const btnModalEditar = $("#btn-modal-editar");
+  if (btnModalEditar) {
+    btnModalEditar.addEventListener("click", () => {
+      cerrarCualquierModal();
+      prepararFormularioPublicacion(p);
+      $("#modal-publicar").hidden = false;
+      document.body.classList.add("sin-scroll");
+    });
+  }
+
   $("#modal").hidden = false;
   document.body.classList.add("sin-scroll");
 });
 
 // ==========================================
-// 6. SIMULADOR HIPOTECARIO (SISTEMA FRANCÉS)
+// 7. SIMULADOR HIPOTECARIO
 // ==========================================
 function calcularSimulador() {
   const monto = Number($("#sim-monto").value) || 0;
   const anios = Number($("#sim-plazo").value) || 20;
   const tasaAnual = Number($("#sim-tasa").value) || 8.5;
 
-  const n = anios * 12; // meses
-  const r = (tasaAnual / 100) / 12; // tasa mensual
+  const n = anios * 12;
+  const r = (tasaAnual / 100) / 12;
 
   let cuota = 0;
   if (r > 0 && n > 0 && monto > 0) {
@@ -296,7 +520,7 @@ $("#form-simulador").addEventListener("submit", (e) => {
 });
 
 // ==========================================
-// 7. BUSCADOR Y TEMA
+// 8. BUSCADOR Y TEMA
 // ==========================================
 $("#f-precio").addEventListener("input", (e) => {
   $("#salida-precio").value = money(Number(e.target.value));
@@ -325,12 +549,11 @@ $("#form-busqueda").addEventListener("submit", (e) => {
   renderizarCatalogo(filtrados);
 });
 
-// Alternar tema oscuro/claro
 $("#btn-tema").addEventListener("click", () => {
   const actual = document.documentElement.getAttribute("data-theme");
   document.documentElement.setAttribute("data-theme", actual === "dark" ? "light" : "dark");
 });
 
-// Inicialización
+// Inicio
 renderizarCatalogo(PROPIEDADES);
 calcularSimulador();
