@@ -1,11 +1,11 @@
 /* =========================================================
-   Andina Propiedades — Lógica con Carrusel, Video y Edición
+   Andina Propiedades — Lógica con Previsualización y Edición
    ========================================================= */
 
 const PROPIEDADES_POR_DEFECTO = [
   {
     id: 1,
-    creadorUid: null, // Propiedad inicial del sistema
+    creadorUid: null,
     titulo: "Casa familiar con jardín y estudio",
     operacion: "venta",
     tipo: "casa",
@@ -33,7 +33,6 @@ function cargarPropiedades() {
   if (guardadas) {
     try {
       const parsed = JSON.parse(guardadas);
-      // Normalizar formato multimedia para propiedades previas
       return parsed.map(p => {
         if (p.galeria && typeof p.galeria[0] === "string") {
           p.galeria = p.galeria.map(url => ({
@@ -52,6 +51,7 @@ function cargarPropiedades() {
 
 let PROPIEDADES = cargarPropiedades();
 let usuarioActual = null;
+let propiedadEnBorrador = null; // Almacena temporalmente los datos para la previsualización
 
 const $ = (sel) => document.querySelector(sel);
 const money = (n) => new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -63,7 +63,6 @@ const ETIQUETA_TIPO = { casa: "Casa", departamento: "Departamento", terreno: "Te
 function cerrarCualquierModal() {
   document.querySelectorAll(".modal").forEach(m => {
     m.hidden = true;
-    // Detener videos al cerrar modal
     m.querySelectorAll("video").forEach(v => v.pause());
   });
   document.body.classList.remove("sin-scroll");
@@ -115,7 +114,6 @@ auth.onAuthStateChanged(user => {
     $("#btn-logout").hidden = true;
     $("#btn-publicar").hidden = true;
   }
-  // Re-renderizar catálogo para actualizar botones de edición según el usuario
   renderizarCatalogo(PROPIEDADES);
 });
 
@@ -134,7 +132,7 @@ $("#btn-google").addEventListener("click", () => {
 });
 
 // ==========================================
-// 4. PUBLICACIÓN Y EDICIÓN DE PROPIEDADES
+// 4. PREPARACIÓN Y FORMULARIO DE PUBLICACIÓN
 // ==========================================
 $("#btn-publicar").addEventListener("click", () => {
   prepararFormularioPublicacion(null);
@@ -148,11 +146,11 @@ function prepararFormularioPublicacion(propiedadAEditar) {
 
   if (propiedadAEditar) {
     $("#pub-modal-titulo").textContent = "Editar Inmueble";
-    $("#pub-modal-sub").textContent = "Actualiza los datos de tu publicación.";
-    $("#btn-submit-pub").textContent = "Guardar Cambios";
+    $("#pub-modal-sub").textContent = "Actualiza los datos y revisa la vista previa.";
+    $("#btn-submit-pub").textContent = "Previsualizar Cambios";
     $("#pub-id-editar").value = propiedadAEditar.id;
     $("#pub-fotos").required = false;
-    $("#lbl-fotos").textContent = "Reemplazar Fotos / Videos (Opcional)";
+    $("#lbl-fotos").textContent = "Reemplazar Fotos/Videos (Opcional)";
 
     $("#pub-titulo").value = propiedadAEditar.titulo;
     $("#pub-operacion").value = propiedadAEditar.operacion;
@@ -170,14 +168,15 @@ function prepararFormularioPublicacion(propiedadAEditar) {
     $("#pub-caract").value = (propiedadAEditar.caracteristicas || []).join(", ");
   } else {
     $("#pub-modal-titulo").textContent = "Publicar Inmueble";
-    $("#pub-modal-sub").textContent = "Completa los datos de tu propiedad para añadirla al catálogo.";
-    $("#btn-submit-pub").textContent = "Publicar propiedad";
+    $("#pub-modal-sub").textContent = "Completa los datos. Podrás revisar la vista previa antes de publicar.";
+    $("#btn-submit-pub").textContent = "Previsualizar publicación";
     $("#pub-id-editar").value = "";
     $("#pub-fotos").required = true;
     $("#lbl-fotos").textContent = "Fotos y Videos (Archivos multimedia) *";
   }
 }
 
+// Interceptar submit para abrir PREVISUALIZACIÓN
 $("#form-publicar").addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -186,7 +185,7 @@ $("#form-publicar").addEventListener("submit", async (e) => {
 
   let galeriaItems = [];
 
-  // Procesar nuevos archivos si se seleccionaron
+  // Si se eligieron archivos nuevos
   if (archivos && archivos.length > 0) {
     const promesasMultimedia = Array.from(archivos).map(file => {
       return new Promise((resolve) => {
@@ -200,80 +199,138 @@ $("#form-publicar").addEventListener("submit", async (e) => {
       });
     });
     galeriaItems = await Promise.all(promesasMultimedia);
+  } else if (idEditar) {
+    // Si estamos editando y no se subieron nuevas fotos, mantener las existentes
+    const propExistente = PROPIEDADES.find(p => p.id === Number(idEditar));
+    if (propExistente) {
+      galeriaItems = propExistente.galeria;
+    }
   }
 
-  if (idEditar) {
-    // Modo Edición: Actualizar propiedad existente
-    const idx = PROPIEDADES.findIndex(p => p.id === Number(idEditar));
+  if (!galeriaItems || galeriaItems.length === 0) {
+    alert("Por favor selecciona al menos una fotografía o video.");
+    return;
+  }
+
+  // Crear objeto borrador
+  propiedadEnBorrador = {
+    id: idEditar ? Number(idEditar) : Date.now(),
+    creadorUid: usuarioActual ? usuarioActual.uid : (idEditar ? PROPIEDADES.find(p => p.id === Number(idEditar))?.creadorUid : null),
+    titulo: $("#pub-titulo").value.trim(),
+    operacion: $("#pub-operacion").value,
+    tipo: $("#pub-tipo").value,
+    ciudad: $("#pub-ciudad").value.trim(),
+    sector: $("#pub-sector").value.trim(),
+    precio: Number($("#pub-precio").value),
+    dormitorios: Number($("#pub-dorm").value) || 0,
+    banos: Number($("#pub-banos").value) || 0,
+    area: Number($("#pub-area").value) || 0,
+    anio: Number($("#pub-anio").value) || 2024,
+    ubicacionUrl: $("#pub-mapa").value.trim(),
+    descripcion: $("#pub-desc").value.trim(),
+    caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
+    asesor: {
+      nombre: usuarioActual ? (usuarioActual.displayName || usuarioActual.email.split("@")[0]) : "Propietario",
+      telefono: $("#pub-wa").value.replace(/\D/g, '')
+    },
+    galeria: galeriaItems,
+    destacada: true,
+    esEdicion: Boolean(idEditar)
+  };
+
+  // Mostrar modal de previsualización
+  mostrarModalPreview(propiedadEnBorrador);
+});
+
+// Mostrar modal de vista previa
+function mostrarModalPreview(p) {
+  const mensajeWA = encodeURIComponent(`Hola, vi en Los Andes su anuncio "${p.titulo}". ¿Podría darme más información?`);
+
+  $("#preview-contenido").innerHTML = `
+    <div class="modal__imagen-wrap">
+      ${generarHtmlCarrusel(p.galeria, `carrusel-preview`, true)}
+      <span class="chip chip--operacion">${p.operacion === "venta" ? "En Venta" : "En Alquiler"}</span>
+    </div>
+    <div class="modal__detalles">
+      <div class="modal__header-info">
+        <span class="badge-tipo">${ETIQUETA_TIPO[p.tipo] || p.tipo}</span>
+        <h2>${p.titulo}</h2>
+        <p class="modal__ubicacion">${p.sector}, ${p.ciudad}</p>
+        <p class="modal__precio">${money(p.precio)}</p>
+      </div>
+
+      <ul class="tarjeta__detalles modal__specs">
+        ${p.dormitorios ? `<li><strong>${p.dormitorios}</strong> Dormitorios</li>` : ''}
+        ${p.banos ? `<li><strong>${p.banos}</strong> Baños</li>` : ''}
+        ${p.area ? `<li><strong>${p.area}</strong> m² Área</li>` : ''}
+        ${p.anio ? `<li>Año: <strong>${p.anio}</strong></li>` : ''}
+      </ul>
+
+      <div class="modal__bloque">
+        <h3>Descripción</h3>
+        <p>${p.descripcion}</p>
+      </div>
+
+      ${p.caracteristicas && p.caracteristicas.length ? `
+        <div class="modal__bloque">
+          <h3>Comodidades</h3>
+          <div class="modal__tags">
+            ${p.caracteristicas.map(c => `<span>✓ ${c}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="modal__acciones-contacto">
+        ${p.ubicacionUrl ? `
+          <a class="btn btn--secundario btn--full" href="${p.ubicacionUrl}" target="_blank" rel="noopener">
+            📍 Ver Ubicación en el Mapa
+          </a>
+        ` : ''}
+        <a class="btn btn--wa btn--full" href="https://wa.me/${p.asesor.telefono}?text=${mensajeWA}" target="_blank" rel="noopener">
+          Contactar por WhatsApp
+        </a>
+      </div>
+    </div>
+  `;
+
+  $("#modal-publicar").hidden = true;
+  $("#modal-preview").hidden = false;
+}
+
+// Botón "Volver a editar" en previsualización
+$("#btn-preview-volver").addEventListener("click", () => {
+  $("#modal-preview").hidden = true;
+  $("#modal-publicar").hidden = false;
+});
+
+// Botón "Confirmar y Publicar" en previsualización
+$("#btn-preview-confirmar").addEventListener("click", () => {
+  if (!propiedadEnBorrador) return;
+
+  const p = propiedadEnBorrador;
+
+  if (p.esEdicion) {
+    const idx = PROPIEDADES.findIndex(item => item.id === p.id);
     if (idx !== -1) {
-      // Seguridad: verificar creador
-      if (PROPIEDADES[idx].creadorUid !== usuarioActual.uid) {
-        alert("No tienes permiso para modificar esta propiedad.");
-        return;
-      }
-
-      PROPIEDADES[idx].titulo = $("#pub-titulo").value.trim();
-      PROPIEDADES[idx].operacion = $("#pub-operacion").value;
-      PROPIEDADES[idx].tipo = $("#pub-tipo").value;
-      PROPIEDADES[idx].ciudad = $("#pub-ciudad").value.trim();
-      PROPIEDADES[idx].sector = $("#pub-sector").value.trim();
-      PROPIEDADES[idx].precio = Number($("#pub-precio").value);
-      PROPIEDADES[idx].dormitorios = Number($("#pub-dorm").value) || 0;
-      PROPIEDADES[idx].banos = Number($("#pub-banos").value) || 0;
-      PROPIEDADES[idx].area = Number($("#pub-area").value) || 0;
-      PROPIEDADES[idx].anio = Number($("#pub-anio").value) || 2024;
-      PROPIEDADES[idx].ubicacionUrl = $("#pub-mapa").value.trim();
-      PROPIEDADES[idx].asesor.telefono = $("#pub-wa").value.replace(/\D/g, '');
-      PROPIEDADES[idx].descripcion = $("#pub-desc").value.trim();
-      PROPIEDADES[idx].caracteristicas = $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [];
-
-      if (galeriaItems.length > 0) {
-        PROPIEDADES[idx].galeria = galeriaItems;
-      }
-      alert("¡Propiedad actualizada exitosamente!");
+      delete p.esEdicion;
+      PROPIEDADES[idx] = p;
+      alert("¡Publicación actualizada exitosamente!");
     }
   } else {
-    // Modo Nueva Publicación
-    if (!galeriaItems.length) {
-      alert("Por favor selecciona al menos una foto o video.");
-      return;
-    }
-
-    const nuevaPropiedad = {
-      id: Date.now(),
-      creadorUid: usuarioActual ? usuarioActual.uid : null,
-      titulo: $("#pub-titulo").value.trim(),
-      operacion: $("#pub-operacion").value,
-      tipo: $("#pub-tipo").value,
-      ciudad: $("#pub-ciudad").value.trim(),
-      sector: $("#pub-sector").value.trim(),
-      precio: Number($("#pub-precio").value),
-      dormitorios: Number($("#pub-dorm").value) || 0,
-      banos: Number($("#pub-banos").value) || 0,
-      area: Number($("#pub-area").value) || 0,
-      anio: Number($("#pub-anio").value) || 2024,
-      ubicacionUrl: $("#pub-mapa").value.trim(),
-      descripcion: $("#pub-desc").value.trim(),
-      caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
-      asesor: {
-        nombre: usuarioActual ? usuarioActual.displayName || usuarioActual.email.split("@")[0] : "Propietario",
-        telefono: $("#pub-wa").value.replace(/\D/g, '')
-      },
-      galeria: galeriaItems,
-      destacada: true
-    };
-
-    PROPIEDADES.unshift(nuevaPropiedad);
+    delete p.esEdicion;
+    PROPIEDADES.unshift(p);
     alert("¡Tu propiedad ha sido publicada exitosamente!");
   }
 
   localStorage.setItem("andina_propiedades", JSON.stringify(PROPIEDADES));
   renderizarCatalogo(PROPIEDADES);
   cerrarCualquierModal();
+  propiedadEnBorrador = null;
+  $("#form-publicar").reset();
 });
 
 // ==========================================
-// 5. COMPONENTE DE CARRUSEL MULTIMEDIA
+// 5. MOTOR DEL CARRUSEL (SLIDER INTERACTIVO)
 // ==========================================
 function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
   if (!galeria || galeria.length === 0) {
@@ -285,7 +342,7 @@ function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
     if (item.tipo === "video") {
       return `
         <div class="carrusel-slide ${esPrimerSlide}" data-slide="${index}">
-          <video ${esModal ? 'controls' : 'muted loop autoplay playsinline'} class="carrusel-media">
+          <video ${esModal ? 'controls' : 'muted loop playsinline'} class="carrusel-media">
             <source src="${item.url}">
             Tu navegador no soporta video.
           </video>
@@ -301,8 +358,8 @@ function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
   }).join("");
 
   const controles = galeria.length > 1 ? `
-    <button class="carrusel-btn prev" data-dir="-1" aria-label="Anterior">&#10094;</button>
-    <button class="carrusel-btn next" data-dir="1" aria-label="Siguiente">&#10095;</button>
+    <button type="button" class="carrusel-btn prev" data-carrusel="${idContenedor}" data-dir="-1" aria-label="Anterior">&#10094;</button>
+    <button type="button" class="carrusel-btn next" data-carrusel="${idContenedor}" data-dir="1" aria-label="Siguiente">&#10095;</button>
     <span class="carrusel-contador">1 / ${galeria.length}</span>
   ` : "";
 
@@ -319,8 +376,9 @@ function cambiarSlide(carruselEl, direccion) {
   if (slides.length <= 1) return;
 
   let indiceActual = Array.from(slides).findIndex(s => s.classList.contains("activo"));
-  
-  // Pausar video actual si existía
+  if (indiceActual === -1) indiceActual = 0;
+
+  // Pausar video si estaba reproduciéndose
   const videoActual = slides[indiceActual].querySelector("video");
   if (videoActual) videoActual.pause();
 
@@ -332,9 +390,11 @@ function cambiarSlide(carruselEl, direccion) {
 
   slides[nuevoIndice].classList.add("activo");
 
-  // Reproducir video nuevo si existe
+  // Si el nuevo slide tiene video en vista de tarjeta, auto-reproducir silenciado
   const videoNuevo = slides[nuevoIndice].querySelector("video");
-  if (videoNuevo) videoNuevo.play().catch(() => {});
+  if (videoNuevo && !videoNuevo.hasAttribute("controls")) {
+    videoNuevo.play().catch(() => {});
+  }
 
   const contador = carruselEl.querySelector(".carrusel-contador");
   if (contador) {
@@ -342,11 +402,12 @@ function cambiarSlide(carruselEl, direccion) {
   }
 }
 
-// Delegación de clic para botones de carrusel (tarjetas y modal)
+// Clic en botones del carrusel
 document.addEventListener("click", (e) => {
   const btnCarrusel = e.target.closest(".carrusel-btn");
   if (btnCarrusel) {
-    e.stopPropagation(); // Evita abrir el modal al presionar siguiente/anterior
+    e.preventDefault();
+    e.stopPropagation();
     const carrusel = btnCarrusel.closest(".carrusel");
     const dir = Number(btnCarrusel.dataset.dir);
     cambiarSlide(carrusel, dir);
@@ -354,7 +415,7 @@ document.addEventListener("click", (e) => {
 });
 
 // ==========================================
-// 6. RENDERIZADO DE CATÁLOGO
+// 6. RENDERIZADO DE CATÁLOGO Y TARJETAS
 // ==========================================
 function renderizarCatalogo(lista) {
   const grilla = $("#grilla-propiedades");
@@ -364,7 +425,8 @@ function renderizarCatalogo(lista) {
   }
 
   grilla.innerHTML = lista.map(p => {
-    const esPropietario = usuarioActual && p.creadorUid && usuarioActual.uid === p.creadorUid;
+    // Si el usuario actual es el autor de la publicación
+    const esPropietario = Boolean(usuarioActual && p.creadorUid && usuarioActual.uid === p.creadorUid);
 
     return `
       <article class="tarjeta" data-id="${p.id}">
@@ -372,7 +434,11 @@ function renderizarCatalogo(lista) {
           ${generarHtmlCarrusel(p.galeria, `carrusel-tarjeta-${p.id}`)}
           <span class="chip chip--operacion">${p.operacion === "venta" ? "En Venta" : "En Alquiler"}</span>
           ${p.destacada ? '<span class="chip chip--destacada">Destacada</span>' : ''}
-          ${esPropietario ? `<button class="btn-editar-tarjeta" data-editar="${p.id}" title="Editar mi propiedad">✎ Editar</button>` : ''}
+          
+          <div class="tarjeta__acciones-superiores">
+            ${esPropietario ? `<button type="button" class="btn-tarjeta-accion btn-tarjeta-editar" data-editar="${p.id}">✎ Editar</button>` : ''}
+            ${p.ubicacionUrl ? `<a href="${p.ubicacionUrl}" target="_blank" rel="noopener" class="btn-tarjeta-accion btn-tarjeta-mapa" data-stop-propagation="true">📍 Mapa</a>` : ''}
+          </div>
         </div>
         <div class="tarjeta__cuerpo">
           <div class="tarjeta__precio-fila">
@@ -397,9 +463,14 @@ function renderizarCatalogo(lista) {
   }).join("");
 }
 
-// Clic en la tarjeta o botón editar
+// Clic dentro de la grilla de propiedades
 $("#grilla-propiedades").addEventListener("click", (e) => {
-  // Editar directo desde la tarjeta
+  // Evitar abrir modal si hizo clic en controles del carrusel o enlace directo al mapa
+  if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) {
+    return;
+  }
+
+  // Si hizo clic en editar desde la tarjeta
   const btnEditar = e.target.closest("[data-editar]");
   if (btnEditar) {
     e.stopPropagation();
@@ -413,16 +484,13 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
     return;
   }
 
-  // Si hizo clic en un control del carrusel, no abrir modal
-  if (e.target.closest(".carrusel-btn")) return;
-
-  // Abrir detalle
+  // Abrir detalle completo de la propiedad
   const tarjeta = e.target.closest(".tarjeta");
   if (!tarjeta) return;
   const p = PROPIEDADES.find(x => x.id === Number(tarjeta.dataset.id));
   if (!p) return;
 
-  const esPropietario = usuarioActual && p.creadorUid && usuarioActual.uid === p.creadorUid;
+  const esPropietario = Boolean(usuarioActual && p.creadorUid && usuarioActual.uid === p.creadorUid);
   const mensajeWA = encodeURIComponent(`Hola, vi en Los Andes su anuncio "${p.titulo}" por ${money(p.precio)}. ¿Podría darme más información?`);
 
   $("#modal-contenido").innerHTML = `
@@ -432,9 +500,9 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
     </div>
     <div class="modal__detalles">
       <div class="modal__header-info">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
           <span class="badge-tipo">${ETIQUETA_TIPO[p.tipo] || p.tipo}</span>
-          ${esPropietario ? `<button class="btn btn--secundario btn--sm" id="btn-modal-editar" data-id="${p.id}">✎ Editar esta publicación</button>` : ''}
+          ${esPropietario ? `<button type="button" class="btn btn--secundario btn--sm" id="btn-modal-editar">✎ Editar mi publicación</button>` : ''}
         </div>
         <h2>${p.titulo}</h2>
         <p class="modal__ubicacion">${p.sector}, ${p.ciudad}</p>
@@ -475,7 +543,6 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
     </div>
   `;
 
-  // Listener para botón editar dentro del modal
   const btnModalEditar = $("#btn-modal-editar");
   if (btnModalEditar) {
     btnModalEditar.addEventListener("click", () => {
@@ -554,6 +621,6 @@ $("#btn-tema").addEventListener("click", () => {
   document.documentElement.setAttribute("data-theme", actual === "dark" ? "light" : "dark");
 });
 
-// Inicio
+// Inicialización
 renderizarCatalogo(PROPIEDADES);
 calcularSimulador();
