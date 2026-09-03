@@ -1,5 +1,5 @@
 /* =========================================================
-   Andina Propiedades — Hoja de estilos con Carrusel, Mapa y Preview
+   Andina Propiedades — Hoja de estilos con Firestore & Control
    ========================================================= */
 
 :root {
@@ -125,6 +125,8 @@ a { color: var(--c-marca); }
 .btn--sm { padding: .55rem 1rem; font-size: .88rem; }
 .btn--wa { background: #25d366; color: #ffffff; }
 .btn--wa:hover { filter: brightness(1.06); }
+.btn--peligro { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.btn--peligro:hover { background: #dc2626; color: #ffffff; }
 .btn--full { width: 100%; }
 
 .icono-btn {
@@ -202,6 +204,7 @@ a { color: var(--c-marca); }
   flex-direction: column;
 }
 .tarjeta:hover { transform: translateY(-6px); box-shadow: var(--sombra-alta); }
+.tarjeta--cerrada { opacity: 0.78; }
 
 .tarjeta__portada {
   position: relative;
@@ -210,7 +213,18 @@ a { color: var(--c-marca); }
   background: #000;
 }
 
-/* Acciones en la tarjeta (Editar y Mapa) */
+.tarjeta__chips-superiores {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 15;
+  pointer-events: none;
+}
+
 .tarjeta__acciones-superiores {
   position: absolute;
   bottom: 8px;
@@ -231,15 +245,13 @@ a { color: var(--c-marca); }
   cursor: pointer;
   text-decoration: none;
   box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-  transition: all .2s ease;
 }
 .btn-tarjeta-accion:hover {
   background: var(--c-marca);
   color: #ffffff;
-  border-color: var(--c-marca);
 }
 
-/* Carrusel y Multimedia */
+/* Carrusel */
 .carrusel {
   position: relative;
   width: 100%;
@@ -282,7 +294,6 @@ a { color: var(--c-marca); }
   place-items: center;
   font-size: 1.1rem;
   cursor: pointer;
-  transition: background .2s ease, transform .2s ease;
 }
 .carrusel-btn:hover {
   background: rgba(0, 0, 0, 0.9);
@@ -318,18 +329,19 @@ a { color: var(--c-marca); }
   border-radius: 4px;
 }
 
-/* Chips */
+/* Chips y Estados */
 .chip {
-  position: absolute;
   padding: .35rem .75rem;
   border-radius: 999px;
   font-size: .75rem;
   font-weight: 700;
-  z-index: 15;
   text-transform: uppercase;
 }
-.chip--operacion { top: 10px; left: 10px; background: rgba(255, 255, 255, 0.95); color: #0f172a; }
-.chip--destacada { top: 10px; right: 10px; background: var(--c-acento); color: #ffffff; }
+.chip--operacion { background: rgba(255, 255, 255, 0.95); color: #0f172a; }
+.chip--destacada { background: var(--c-acento); color: #ffffff; }
+.chip--estado { color: #fff; }
+.chip--vendido { background: #dc2626; }
+.chip--alquilado { background: #2563eb; }
 
 .tarjeta__cuerpo {
   padding: 1.25rem;
@@ -356,6 +368,18 @@ a { color: var(--c-marca); }
   border-top: 1px solid var(--c-borde); list-style: none; font-size: .82rem; color: var(--c-texto-suave); flex-wrap: wrap;
 }
 .tarjeta__detalles strong { color: var(--c-texto); font-size: .95rem; }
+
+/* Panel del Propietario en el Modal */
+.panel-propietario {
+  background: color-mix(in srgb, var(--c-marca) 10%, transparent);
+  border: 1px dashed var(--c-marca);
+  padding: 1rem;
+  border-radius: var(--radio-sm);
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.panel-propietario__botones { display: flex; flex-wrap: wrap; gap: .5rem; }
 
 /* Modales */
 .modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 1rem; }
@@ -385,8 +409,16 @@ a { color: var(--c-marca); }
 .modal__tags { display: flex; flex-wrap: wrap; gap: .5rem; }
 .modal__tags span { background: var(--c-superficie-2); padding: .4rem .8rem; border-radius: 999px; font-size: .85rem; font-weight: 500; }
 .modal__acciones-contacto { display: flex; flex-direction: column; gap: .75rem; }
+.aviso-cerrado {
+  padding: .85rem;
+  background: #fee2e2;
+  color: #b91c1c;
+  text-align: center;
+  font-weight: 700;
+  border-radius: var(--radio-sm);
+}
 
-/* Barra y acciones de Previsualización */
+/* Previsualización */
 .preview-barra {
   background: color-mix(in srgb, var(--c-marca) 12%, transparent);
   color: var(--c-marca);
@@ -403,7 +435,7 @@ a { color: var(--c-marca); }
   background: var(--c-superficie-2);
 }
 
-/* Simulador Hipotecario */
+/* Simulador */
 .simulador-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
   background: var(--c-superficie); padding: 2.2rem; border-radius: var(--radio);
@@ -431,7 +463,7 @@ a { color: var(--c-marca); }
 }
 .red-enlace:hover { background: var(--c-marca); color: #ffffff; }
 
-/* Botón Google y Formulario */
+/* Autenticación Google y Publicar */
 .auth-caja { width: min(100%, 420px); padding: 2.2rem; text-align: center; }
 .btn-google {
   display: flex; align-items: center; justify-content: center; gap: 12px;

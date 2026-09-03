@@ -6,9 +6,11 @@
   <title>Andina Propiedades | Venta y alquiler de inmuebles</title>
   <link rel="stylesheet" href="styles.css">
 
-  <!-- SDKs de Firebase (Compat) -->
+  <!-- ============ SDKs de Firebase (Compat) ============ -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <!-- SDK de Firestore para compartir publicaciones entre dispositivos -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -44,7 +46,7 @@
     <section class="hero">
       <div class="contenedor hero__inner">
         <p class="hero__kicker">Riobamba · Chimborazo · Ecuador</p>
-        <h1 class="hero__titulo">La casa correcta, en el sector correcto, al precio correcto.</h1>
+        <h1 class="hero__titulo">La propiedad correcta, en el sector correcto, al precio correcto.</h1>
         <form class="buscador" id="form-busqueda">
           <div class="campo"><label>Operación</label><select id="f-operacion"><option value="">Todas</option><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
           <div class="campo"><label>Tipo</label><select id="f-tipo"><option value="">Todos</option><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="terreno">Terreno</option><option value="local">Local</option></select></div>
@@ -55,20 +57,20 @@
       </div>
     </section>
 
-    <!-- CATÁLOGO DE PROPIEDADES -->
+    <!-- CATÁLOGO -->
     <section class="seccion" id="propiedades">
       <div class="contenedor">
         <header class="seccion__head">
           <div>
-            <h2 class="seccion__titulo">Propiedades destacadas</h2>
-            <p class="seccion__sub">Explora inmuebles con fotos, videos, mapas y contacto directo.</p>
+            <h2 class="seccion__titulo">Propiedades disponibles</h2>
+            <p class="seccion__sub">Explora inmuebles publicados por la comunidad en tiempo real.</p>
           </div>
         </header>
         <div class="grilla" id="grilla-propiedades"></div>
       </div>
     </section>
 
-    <!-- SIMULADOR DE CRÉDITO -->
+    <!-- SIMULADOR -->
     <section class="seccion seccion--alt" id="simulador">
       <div class="contenedor">
         <header class="seccion__head">
@@ -117,12 +119,12 @@
           <svg class="logo__icono" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 16 16 5l12 11v11a2 2 0 0 1-2 2h-7v-8h-6v8H6a2 2 0 0 1-2-2z" fill="currentColor"/></svg>
           <span class="logo__texto">Los<strong>Andes</strong></span>
         </a>
-        <p class="footer__texto">Plataforma libre para la publicación y búsqueda de bienes raíces en Riobamba y todo el Ecuador.</p>
+        <p class="footer__texto">Plataforma abierta para la publicación y búsqueda de bienes raíces en Riobamba y todo el Ecuador.</p>
       </div>
 
       <div class="footer__col">
         <h4 class="footer__titulo">Soporte y Atención</h4>
-        <p class="footer__texto">¿Dudas al publicar o navegar?</p>
+        <p class="footer__texto">¿Necesitas ayuda con tu publicación?</p>
         <a href="https://wa.me/593987654321?text=Hola%20necesito%20soporte" target="_blank" rel="noopener" class="btn btn--wa btn--sm">WhatsApp de Soporte</a>
       </div>
 
@@ -162,8 +164,8 @@
       </div>
       <div class="modal__contenido" id="preview-contenido"></div>
       <div class="preview-acciones">
-        <button type="button" class="btn btn--secundario" id="btn-preview-volver">← Regresar y Modificar</button>
-        <button type="button" class="btn btn--primario" id="btn-preview-confirmar">Confirmar y Publicar Ahora</button>
+        <button type="button" class="btn btn--secundario" id="btn-preview-volver">← Seguir editando</button>
+        <button type="button" class="btn btn--primario" id="btn-preview-confirmar">Confirmar y Publicar en la nube</button>
       </div>
     </div>
   </div>
@@ -175,7 +177,7 @@
       <button class="modal__cerrar" type="button" data-cerrar="modal-auth" aria-label="Cerrar modal">&times;</button>
       <div class="auth-header">
         <h2>Acceso Propietarios</h2>
-        <p class="seccion__sub">Inicia sesión con Google para publicar o editar tus propiedades.</p>
+        <p class="seccion__sub">Inicia sesión con tu cuenta de Google para publicar y gestionar tus inmuebles.</p>
       </div>
       
       <button id="btn-google" class="btn-google" type="button">
@@ -198,7 +200,7 @@
     <div class="modal__caja pub-caja">
       <button class="modal__cerrar" type="button" data-cerrar="modal-publicar" aria-label="Cerrar modal">&times;</button>
       <h2 id="pub-modal-titulo">Publicar Inmueble</h2>
-      <p class="seccion__sub" id="pub-modal-sub">Completa los datos. Podrás revisar la vista previa antes de publicar.</p>
+      <p class="seccion__sub" id="pub-modal-sub">Completa los datos de tu propiedad para el catálogo global.</p>
       
       <form id="form-publicar" class="pub-form">
         <input type="hidden" id="pub-id-editar" value="">
@@ -220,7 +222,7 @@
         <div class="campo"><label>Año de construcción</label><input type="number" id="pub-anio" value="2024"></div>
         
         <div class="campo campo--ancho">
-          <label>Enlace de Ubicación (Google Maps o Coordenadas)</label>
+          <label>Enlace de Ubicación (Google Maps URL o Coordenadas)</label>
           <input type="url" id="pub-mapa" placeholder="https://maps.app.goo.gl/... o https://maps.google.com/?q=...">
         </div>
 
@@ -231,7 +233,7 @@
         <div class="campo campo--ancho">
           <label id="lbl-fotos">Fotos y Videos (Archivos multimedia) *</label>
           <input type="file" id="pub-fotos" accept="image/*,video/*" multiple>
-          <small style="color:var(--c-texto-suave); font-size:0.75rem;">Puedes seleccionar varias imágenes y videos. En edición, si no seleccionas nada se mantendrán los anteriores.</small>
+          <small style="color:var(--c-texto-suave); font-size:0.75rem;">Imágenes o videos cortos. En modo edición, si no seleccionas nada se mantendrán los archivos previos.</small>
         </div>
 
         <button type="submit" class="btn btn--primario campo--ancho btn--enviar-pub" id="btn-submit-pub">Previsualizar publicación</button>
