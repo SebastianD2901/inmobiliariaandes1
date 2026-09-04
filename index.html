@@ -52,17 +52,17 @@
           <div class="circulo-luz luz-2"></div>
         </div>
         <div class="contenedor hero-impacto__inner">
-          <div class="hero-badge">Revolución Inmobiliaria · Ecuador</div>
+          <div class="hero-badge">LOS ANDES· Ecuador</div>
           <h1 class="hero-impacto__titulo">
-            Conectamos hogares y sueños <span class="texto-gradiente">sin comisiones abusivas</span>.
+            Conectamos hogares <span class="texto-gradiente">sin comisiones abusivas</span>.
           </h1>
           <p class="hero-impacto__descripcion">
-            La plataforma abierta y transparente para comprar, vender o arrendar inmuebles en Riobamba y todo el Ecuador. Publicación gratuita directa de propietario a interesado.
+            La plataforma abierta y transparente para comprar, vender o arrendar inmuebles en todo el Ecuador. Publicación gratuita directa de propietario a interesado.
           </p>
           
           <div class="hero-impacto__botones">
             <button type="button" class="btn btn--cta-grande pulse-glow" id="btn-hero-publicar">
-              <span>Empezar a Publicar Ahora</span>
+              <span> Empezar a Publicar Ahora</span>
             </button>
             <button type="button" class="btn btn--secundario btn--lg" data-navegar="propiedades">
               Ver Inmuebles Disponibles →
@@ -99,16 +99,58 @@
         <header class="vista-head">
           <div>
             <h2 class="vista-titulo">Catálogo Inmobiliario</h2>
-            <p class="vista-sub">Explora propiedades actualizadas con fotos, videos y mapas.</p>
+            <p class="vista-sub">Filtra por ciudad, sector y tipo de inmueble para encontrar la opción ideal.</p>
           </div>
         </header>
 
-        <!-- Buscador integrado en vista de propiedades -->
-        <form class="buscador" id="form-busqueda">
-          <div class="campo"><label>Operación</label><select id="f-operacion"><option value="">Todas</option><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
-          <div class="campo"><label>Tipo</label><select id="f-tipo"><option value="">Todos</option><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="terreno">Terreno</option><option value="local">Local</option></select></div>
-          <div class="campo"><label>Palabra clave</label><input type="search" id="f-texto" placeholder="Ej. suite, jardín, centro"></div>
-          <div class="campo"><label>Precio máximo: <output id="salida-precio">$400.000</output></label><input type="range" id="f-precio" min="500" max="400000" step="500" value="400000"></div>
+        <!-- Buscador con filtros de Ciudad y Sector -->
+        <form class="buscador buscador--inmuebles" id="form-busqueda">
+          <div class="campo">
+            <label>Ciudad</label>
+            <select id="f-ciudad">
+              <option value="">Todas las ciudades</option>
+              <option value="Riobamba">Riobamba</option>
+              <option value="Quito">Quito</option>
+              <option value="Guayaquil">Guayaquil</option>
+              <option value="Cuenca">Cuenca</option>
+              <option value="Ambato">Ambato</option>
+              <option value="Ibarra">Ibarra</option>
+              <option value="Loja">Loja</option>
+              <option value="Manta">Manta</option>
+              <option value="Portoviejo">Portoviejo</option>
+              <option value="Santo Domingo">Santo Domingo</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label>Sector / Barrio</label>
+            <input type="search" id="f-sector" placeholder="Ej. Bellavista, Maldonado, Centro">
+          </div>
+          <div class="campo">
+            <label>Operación</label>
+            <select id="f-operacion">
+              <option value="">Todas</option>
+              <option value="venta">Venta</option>
+              <option value="alquiler">Alquiler</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label>Tipo</label>
+            <select id="f-tipo">
+              <option value="">Todos</option>
+              <option value="casa">Casa</option>
+              <option value="departamento">Departamento</option>
+              <option value="terreno">Terreno</option>
+              <option value="local">Local comercial</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label>Palabra clave</label>
+            <input type="search" id="f-texto" placeholder="Ej. suite, jardín, terraza">
+          </div>
+          <div class="campo">
+            <label>Precio máx: <output id="salida-precio">$400.000</output></label>
+            <input type="range" id="f-precio" min="500" max="400000" step="500" value="400000">
+          </div>
           <button type="submit" class="btn btn--primario btn--buscar">Filtrar</button>
         </form>
 
@@ -192,7 +234,7 @@
               </div>
             </div>
 
-            <a href="https://wa.me/593963651513?text=Hola%20deseo%20asesoria%20inmobiliaria" target="_blank" rel="noopener" class="btn btn--wa btn--full">
+            <a href="https://wa.me/593987654321?text=Hola%20deseo%20asesoria%20inmobiliaria" target="_blank" rel="noopener" class="btn btn--wa btn--full">
               Escribir al WhatsApp de Soporte
             </a>
           </div>
@@ -217,7 +259,7 @@
     </section>
   </main>
 
-  <!-- NAVEGACIÓN INFERIOR PARA MÓVILES (Estilo App) -->
+  <!-- NAVEGACIÓN INFERIOR PARA MÓVILES -->
   <nav class="barra-movil">
     <button type="button" class="barra-movil__item activo" data-navegar="inicio">
       <span class="barra-icono">🏠</span>
@@ -237,15 +279,16 @@
     </button>
   </nav>
 
-  <!-- ============ MODALES ============ -->
+  <!-- ============ MODAL DE DETALLE DE PROPIEDAD ============ -->
   <div class="modal" id="modal" hidden>
     <div class="modal__fondo" data-cerrar="modal"></div>
-    <div class="modal__caja">
+    <div class="modal__caja modal__caja--detalle">
       <button class="modal__cerrar" type="button" data-cerrar="modal">&times;</button>
       <div class="modal__contenido" id="modal-contenido"></div>
     </div>
   </div>
 
+  <!-- ============ MODAL PREVIEW ============ -->
   <div class="modal" id="modal-preview" hidden>
     <div class="modal__fondo" data-cerrar="modal-preview"></div>
     <div class="modal__caja">
@@ -259,13 +302,14 @@
     </div>
   </div>
 
+  <!-- ============ MODAL AUTH ============ -->
   <div class="modal" id="modal-auth" hidden>
     <div class="modal__fondo" data-cerrar="modal-auth"></div>
     <div class="modal__caja auth-caja">
       <button class="modal__cerrar" type="button" data-cerrar="modal-auth">&times;</button>
       <div class="auth-header">
         <h2>Acceso Propietarios</h2>
-        <p class="seccion__sub">Inicia sesión con Google para publicar y gestionar inmuebles.</p>
+        <p class="seccion__sub">Inicia sesión con tu cuenta de Google para publicar y gestionar inmuebles.</p>
       </div>
       <button id="btn-google" class="btn-google" type="button">
         <svg class="google-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -280,6 +324,7 @@
     </div>
   </div>
 
+  <!-- ============ MODAL PUBLICAR (SIN AÑO) ============ -->
   <div class="modal" id="modal-publicar" hidden>
     <div class="modal__fondo" data-cerrar="modal-publicar"></div>
     <div class="modal__caja pub-caja">
@@ -289,20 +334,34 @@
       
       <form id="form-publicar" class="pub-form">
         <input type="hidden" id="pub-id-editar" value="">
-        <div class="campo campo--ancho"><label>Título del anuncio *</label><input type="text" id="pub-titulo" placeholder="Ej. Casa familiar de 3 pisos" required></div>
+        <div class="campo campo--ancho"><label>Título del anuncio *</label><input type="text" id="pub-titulo" placeholder="Ej. Casa familiar con jardín amplio" required></div>
         <div class="campo"><label>Operación *</label><select id="pub-operacion" required><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
         <div class="campo"><label>Tipo de inmueble *</label><select id="pub-tipo" required><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="terreno">Terreno</option><option value="local">Local comercial</option></select></div>
-        <div class="campo"><label>Ciudad *</label><input type="text" id="pub-ciudad" value="Riobamba" required></div>
-        <div class="campo"><label>Sector / Barrio *</label><input type="text" id="pub-sector" placeholder="Ej. Bellavista, Maldonado" required></div>
-        <div class="campo campo--ancho"><label>Precio (USD) *</label><input type="number" id="pub-precio" placeholder="Ej. 85000" min="1" required></div>
+        <div class="campo">
+          <label>Ciudad *</label>
+          <select id="pub-ciudad" required>
+            <option value="Riobamba">Riobamba</option>
+            <option value="Quito">Quito</option>
+            <option value="Guayaquil">Guayaquil</option>
+            <option value="Cuenca">Cuenca</option>
+            <option value="Ambato">Ambato</option>
+            <option value="Ibarra">Ibarra</option>
+            <option value="Loja">Loja</option>
+            <option value="Manta">Manta</option>
+            <option value="Portoviejo">Portoviejo</option>
+            <option value="Santo Domingo">Santo Domingo</option>
+            <option value="Otra">Otra ciudad</option>
+          </select>
+        </div>
+        <div class="campo"><label>Sector / Barrio *</label><input type="text" id="pub-sector" placeholder="Ej. Bellavista, Maldonado, Centro" required></div>
+        <div class="campo"><label>Precio (USD) *</label><input type="number" id="pub-precio" placeholder="Ej. 85000" min="1" required></div>
+        <div class="campo"><label>Área techada (m²)</label><input type="number" id="pub-area" value="120" min="0"></div>
         <div class="campo"><label>Dormitorios</label><input type="number" id="pub-dorm" value="3" min="0"></div>
         <div class="campo"><label>Baños</label><input type="number" id="pub-banos" value="2" min="0"></div>
-        <div class="campo"><label>Área techada (m²)</label><input type="number" id="pub-area" value="120" min="0"></div>
-        <div class="campo"><label>Año de construcción</label><input type="number" id="pub-anio" value="2024"></div>
         <div class="campo campo--ancho"><label>Enlace de Ubicación (Google Maps)</label><input type="url" id="pub-mapa" placeholder="https://maps.app.goo.gl/... o https://maps.google.com/?q=..."></div>
         <div class="campo campo--ancho"><label>Número de WhatsApp para contacto *</label><input type="tel" id="pub-wa" placeholder="Ej. 593987654321" required></div>
         <div class="campo campo--ancho"><label>Descripción detallada</label><textarea id="pub-desc" rows="3" placeholder="Detalla los acabados, comodidades o cercanías..." required></textarea></div>
-        <div class="campo campo--ancho"><label>Características (separadas por coma)</label><input type="text" id="pub-caract" placeholder="Ej. Garaje, Patio, Terraza, Guardianía"></div>
+        <div class="campo campo--ancho"><label>Comodidades destacadas (separadas por coma)</label><input type="text" id="pub-caract" placeholder="Ej. Garaje techado, Guardianía 24/7, Jardín posterior, Área de asados"></div>
         <div class="campo campo--ancho">
           <label id="lbl-fotos">Fotos y Videos (Archivos multimedia) *</label>
           <input type="file" id="pub-fotos" accept="image/*,video/mp4,video/webm" multiple>
@@ -312,6 +371,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=6"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>

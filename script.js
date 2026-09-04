@@ -1,5 +1,5 @@
 /* =========================================================
-   Andina Propiedades — SPA Routing & Cloudinary Integration
+   Andina Propiedades — Filtros por Ciudad/Sector y Modal Destacado
    ========================================================= */
 
 const CLOUDINARY_CLOUD_NAME = "ipe9us2o"; 
@@ -21,12 +21,11 @@ const PROPIEDAD_DEMO = {
   dormitorios: 4,
   banos: 3,
   area: 210,
-  anio: 2019,
   destacada: true,
   estado: "disponible",
   ubicacionUrl: "https://maps.google.com/?q=-1.67098,-78.64712",
   descripcion: "Hermosa casa de dos plantas en conjunto cerrado con guardianía 24/7, amplias zonas verdes y acabados de primera.",
-  caracteristicas: ["Conjunto cerrado", "Guardianía 24/7", "Área de asados", "Garaje techado"],
+  caracteristicas: ["Conjunto cerrado", "Guardianía 24/7", "Área de asados", "Garaje techado", "Gas centralizado"],
   asesorNombre: "Andina Propiedades",
   asesorTelefono: "593990000001",
   galeria: ["https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&auto=format&fit=crop&q=60"]
@@ -36,30 +35,25 @@ const PROPIEDAD_DEMO = {
 // 1. SISTEMA DE RUTAS (SPA NAVIGATION)
 // ==========================================
 function cambiarVista(vistaId) {
-  // Ocultar todas las vistas
   document.querySelectorAll(".vista").forEach(v => {
     v.classList.remove("vista--activa");
   });
 
-  // Mostrar la vista requerida
   const vistaDestino = document.getElementById(`vista-${vistaId}`);
   if (vistaDestino) {
     vistaDestino.classList.add("vista--activa");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // Sincronizar clases activas en Navbar Desktop
   document.querySelectorAll(".nav__enlace").forEach(enlace => {
     enlace.classList.toggle("activo", enlace.dataset.navegar === vistaId);
   });
 
-  // Sincronizar clases activas en Barra Móvil
   document.querySelectorAll(".barra-movil__item").forEach(item => {
     item.classList.toggle("activo", item.dataset.navegar === vistaId);
   });
 }
 
-// Delegación de clics para enlaces de navegación
 document.addEventListener("click", (e) => {
   const targetNavegar = e.target.closest("[data-navegar]");
   if (targetNavegar) {
@@ -70,13 +64,11 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Detectar cambio de hash en URL
 window.addEventListener("popstate", () => {
   const hash = window.location.hash.replace("#", "") || "inicio";
   cambiarVista(hash);
 });
 
-// Botón grande del Hero para publicar
 $("#btn-hero-publicar").addEventListener("click", () => {
   if (usuarioActual) {
     prepararFormularioPublicacion(null);
@@ -127,7 +119,7 @@ db.collection("propiedades").onSnapshot(
     } else {
       PROPIEDADES = [PROPIEDAD_DEMO];
     }
-    renderizarCatalogo(PROPIEDADES);
+    filtrarYEjeCatalogo();
   },
   (err) => {
     console.error("Fallo al conectar con Firestore:", err);
@@ -195,7 +187,7 @@ auth.onAuthStateChanged(user => {
     $("#btn-logout").hidden = true;
     $("#btn-publicar").hidden = true;
   }
-  renderizarCatalogo(PROPIEDADES);
+  filtrarYEjeCatalogo();
 });
 
 $("#btn-logout").addEventListener("click", () => auth.signOut());
@@ -268,7 +260,6 @@ function prepararFormularioPublicacion(propiedadAEditar) {
     $("#pub-dorm").value = propiedadAEditar.dormitorios;
     $("#pub-banos").value = propiedadAEditar.banos;
     $("#pub-area").value = propiedadAEditar.area;
-    $("#pub-anio").value = propiedadAEditar.anio;
     $("#pub-mapa").value = propiedadAEditar.ubicacionUrl || "";
     $("#pub-wa").value = propiedadAEditar.asesorTelefono || "";
     $("#pub-desc").value = propiedadAEditar.descripcion;
@@ -320,7 +311,6 @@ $("#form-publicar").addEventListener("submit", (e) => {
     dormitorios: Number($("#pub-dorm").value) || 0,
     banos: Number($("#pub-banos").value) || 0,
     area: Number($("#pub-area").value) || 0,
-    anio: Number($("#pub-anio").value) || 2024,
     ubicacionUrl: $("#pub-mapa").value.trim(),
     descripcion: $("#pub-desc").value.trim(),
     caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
@@ -354,13 +344,21 @@ function mostrarModalPreview(p) {
         ${p.dormitorios ? `<li><strong>${p.dormitorios}</strong> Dormitorios</li>` : ''}
         ${p.banos ? `<li><strong>${p.banos}</strong> Baños</li>` : ''}
         ${p.area ? `<li><strong>${p.area}</strong> m² Área</li>` : ''}
-        ${p.anio ? `<li>Año: <strong>${p.anio}</strong></li>` : ''}
       </ul>
 
       <div class="modal__bloque">
         <h3>Descripción</h3>
         <p>${p.descripcion}</p>
       </div>
+
+      ${p.caracteristicas && p.caracteristicas.length ? `
+        <div class="modal__bloque">
+          <h3>Comodidades Destacadas</h3>
+          <div class="modal__tags">
+            ${p.caracteristicas.map(c => `<span>✓ ${c}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
 
@@ -423,7 +421,6 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
     $("#form-publicar").reset();
     alert("¡Publicación guardada exitosamente! Ya es visible desde cualquier celular o computadora.");
     
-    // Llevar automáticamente a la sección de propiedades para verla
     cambiarVista("propiedades");
   } catch (err) {
     console.error("Error al publicar:", err);
@@ -551,7 +548,7 @@ function renderizarCatalogo(lista) {
   if (!grilla) return;
 
   if (!lista || lista.length === 0) {
-    grilla.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No se encontraron inmuebles.</p>`;
+    grilla.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No se encontraron inmuebles con los filtros seleccionados.</p>`;
     return;
   }
 
@@ -591,7 +588,6 @@ function renderizarCatalogo(lista) {
             ${p.dormitorios > 0 ? `<li><strong>${p.dormitorios}</strong> habs.</li>` : ''}
             ${p.banos > 0 ? `<li><strong>${p.banos}</strong> baños</li>` : ''}
             ${p.area > 0 ? `<li><strong>${p.area}</strong> m²</li>` : ''}
-            ${p.anio ? `<li>Año <strong>${p.anio}</strong></li>` : ''}
           </ul>
         </div>
       </article>
@@ -599,7 +595,7 @@ function renderizarCatalogo(lista) {
   }).join("");
 }
 
-// Clic en tarjetas
+// Clic en tarjetas -> Modal con Información Destacada
 $("#grilla-propiedades").addEventListener("click", (e) => {
   if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) return;
 
@@ -625,6 +621,9 @@ function abrirModalDetalle(p) {
   const estaCerrado = p.estado === "vendido" || p.estado === "alquilado";
   const telefonoContacto = p.asesorTelefono || "";
   const mensajeWA = encodeURIComponent(`Hola, vi en Los Andes su anuncio "${p.titulo}" por ${money(p.precio)}. ¿Sigue disponible?`);
+  
+  // Cálculo de precio por m² si el área es válida
+  const precioM2 = p.area > 0 ? money(Math.round(p.precio / p.area)) : null;
 
   $("#modal-contenido").innerHTML = `
     <div class="modal__imagen-wrap">
@@ -649,34 +648,78 @@ function abrirModalDetalle(p) {
         </div>
       ` : ''}
 
+      <!-- ENCABEZADO DESTACADO -->
       <div class="modal__header-info">
-        <span class="badge-tipo">${ETIQUETA_TIPO[p.tipo] || p.tipo}</span>
-        <h2>${p.titulo}</h2>
-        <p class="modal__ubicacion">${p.sector}, ${p.ciudad}</p>
-        <p class="modal__precio">${money(p.precio)}</p>
+        <div class="modal__tags-principales">
+          <span class="badge-tipo">${ETIQUETA_TIPO[p.tipo] || p.tipo}</span>
+          <span class="chip chip--operacion" style="position:static; display:inline-block;">${p.operacion === "venta" ? "Venta" : "Alquiler"}</span>
+          ${p.destacada && !estaCerrado ? '<span class="chip chip--destacada" style="position:static; display:inline-block;">⭐ Destacada</span>' : ''}
+        </div>
+
+        <h2 class="modal__titulo">${p.titulo}</h2>
+        
+        <p class="modal__ubicacion">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <strong>${p.sector}</strong>, ${p.ciudad}, Ecuador
+        </p>
+
+        <div class="modal__precio-box">
+          <p class="modal__precio">${money(p.precio)}</p>
+          ${precioM2 ? `<span class="modal__precio-m2">(${precioM2} / m²)</span>` : ''}
+        </div>
       </div>
 
-      <ul class="tarjeta__detalles modal__specs">
-        ${p.dormitorios ? `<li><strong>${p.dormitorios}</strong> Dormitorios</li>` : ''}
-        ${p.banos ? `<li><strong>${p.banos}</strong> Baños</li>` : ''}
-        ${p.area ? `<li><strong>${p.area}</strong> m² Área</li>` : ''}
-        ${p.anio ? `<li>Año: <strong>${p.anio}</strong></li>` : ''}
-      </ul>
+      <!-- MÉTRICAS CLAVE -->
+      <div class="modal__metricas-grid">
+        <div class="metrica-item">
+          <span class="metrica-item__icono">🛏️</span>
+          <div>
+            <strong>${p.dormitorios || 0}</strong>
+            <small>Dormitorios</small>
+          </div>
+        </div>
+        <div class="metrica-item">
+          <span class="metrica-item__icono">🚿</span>
+          <div>
+            <strong>${p.banos || 0}</strong>
+            <small>Baños</small>
+          </div>
+        </div>
+        <div class="metrica-item">
+          <span class="metrica-item__icono">📐</span>
+          <div>
+            <strong>${p.area || 0} m²</strong>
+            <small>Área Total</small>
+          </div>
+        </div>
+      </div>
 
+      <!-- DESCRIPCIÓN COMPLETA -->
       <div class="modal__bloque">
-        <h3>Descripción</h3>
-        <p>${p.descripcion}</p>
+        <h3 class="bloque-subtitulo">Detalles y Descripción</h3>
+        <p class="bloque-texto">${p.descripcion}</p>
       </div>
 
+      <!-- COMODIDADES DESTACADAS -->
+      ${p.caracteristicas && p.caracteristicas.length ? `
+        <div class="modal__bloque">
+          <h3 class="bloque-subtitulo">Comodidades y Beneficios</h3>
+          <div class="modal__tags">
+            ${p.caracteristicas.map(c => `<span>✓ ${c}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- BOTONES DE CONTACTO -->
       <div class="modal__acciones-contacto">
         ${p.ubicacionUrl ? `
           <a class="btn btn--secundario btn--full" href="${p.ubicacionUrl}" target="_blank" rel="noopener">
-            📍 Ver Ubicación en Google Maps
+            📍 Abrir Ubicación en Google Maps
           </a>
         ` : ''}
         ${!estaCerrado ? `
           <a class="btn btn--wa btn--full" href="https://wa.me/${telefonoContacto}?text=${mensajeWA}" target="_blank" rel="noopener">
-            Contactar por WhatsApp
+            💬 Contactar al Propietario por WhatsApp
           </a>
         ` : `
           <div class="aviso-cerrado">Esta propiedad ya se encuentra ${p.estado}.</div>
@@ -738,34 +781,48 @@ $("#form-simulador").addEventListener("submit", (e) => {
 });
 
 // ==========================================
-// 12. BUSCADOR Y TEMA
+// 12. BUSCADOR POR CIUDAD, SECTOR Y FILTROS
 // ==========================================
+function filtrarYEjeCatalogo() {
+  const ciudadFiltro = $("#f-ciudad") ? $("#f-ciudad").value.toLowerCase().trim() : "";
+  const sectorFiltro = $("#f-sector") ? $("#f-sector").value.toLowerCase().trim() : "";
+  const operacion = $("#f-operacion") ? $("#f-operacion").value : "";
+  const tipo = $("#f-tipo") ? $("#f-tipo").value : "";
+  const texto = $("#f-texto") ? $("#f-texto").value.toLowerCase().trim() : "";
+  const maxPrecio = $("#f-precio") ? Number($("#f-precio").value) : 400000;
+
+  const filtrados = PROPIEDADES.filter(p => {
+    const coincideCiudad = !ciudadFiltro || (p.ciudad && p.ciudad.toLowerCase().includes(ciudadFiltro));
+    const coincideSector = !sectorFiltro || (p.sector && p.sector.toLowerCase().includes(sectorFiltro));
+    const coincideOp = !operacion || p.operacion === operacion;
+    const coincideTipo = !tipo || p.tipo === tipo;
+    const coincidePrecio = p.precio <= maxPrecio;
+    const coincideTexto = !texto || 
+      (p.titulo && p.titulo.toLowerCase().includes(texto)) ||
+      (p.sector && p.sector.toLowerCase().includes(texto)) ||
+      (p.ciudad && p.ciudad.toLowerCase().includes(texto)) ||
+      (p.descripcion && p.descripcion.toLowerCase().includes(texto)) ||
+      (p.caracteristicas && p.caracteristicas.some(c => c.toLowerCase().includes(texto)));
+
+    return coincideCiudad && coincideSector && coincideOp && coincideTipo && coincidePrecio && coincideTexto;
+  });
+
+  renderizarCatalogo(filtrados);
+}
+
 $("#f-precio").addEventListener("input", (e) => {
   $("#salida-precio").value = money(Number(e.target.value));
 });
 
 $("#form-busqueda").addEventListener("submit", (e) => {
   e.preventDefault();
-  const operacion = $("#f-operacion").value;
-  const tipo = $("#f-tipo").value;
-  const texto = $("#f-texto").value.toLowerCase().trim();
-  const maxPrecio = Number($("#f-precio").value);
-
-  const filtrados = PROPIEDADES.filter(p => {
-    const coincideOp = !operacion || p.operacion === operacion;
-    const coincideTipo = !tipo || p.tipo === tipo;
-    const coincidePrecio = p.precio <= maxPrecio;
-    const coincideTexto = !texto || 
-      p.titulo.toLowerCase().includes(texto) ||
-      p.sector.toLowerCase().includes(texto) ||
-      p.ciudad.toLowerCase().includes(texto) ||
-      p.descripcion.toLowerCase().includes(texto);
-
-    return coincideOp && coincideTipo && coincidePrecio && coincideTexto;
-  });
-
-  renderizarCatalogo(filtrados);
+  filtrarYEjeCatalogo();
 });
+
+// Reaccionar a cambios en selectores de ciudad y operación en tiempo real
+$("#f-ciudad").addEventListener("change", filtrarYEjeCatalogo);
+$("#f-operacion").addEventListener("change", filtrarYEjeCatalogo);
+$("#f-tipo").addEventListener("change", filtrarYEjeCatalogo);
 
 $("#btn-tema").addEventListener("click", () => {
   const actual = document.documentElement.getAttribute("data-theme");
