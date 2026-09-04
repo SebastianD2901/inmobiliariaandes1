@@ -10,7 +10,7 @@
   --c-texto:        #0f172a;
   --c-texto-suave:  #64748b;
   --c-marca:        #156c9f;
-  --c-marca-clara:  #14806e;
+  --c-marca-clara:  #1d7eb6;
   --c-acento:       #c2843a;
   --c-error:        #ef4444;
   --c-exito:        #10b981;
@@ -370,8 +370,7 @@ a {
 .proposito-card p { font-size: .92rem; color: var(--c-texto-suave); margin: 0; }
 
 /* =========================================================
-   /* =========================================================
-   BARRA HORIZONTAL COMPACTA (ALTURA Y TEXTO CORREGIDOS)
+   BARRA HORIZONTAL COMPACTA (CALIBRADA Y CENTRADA)
    ========================================================= */
 .buscador--horizontal {
   display: flex;
@@ -392,48 +391,62 @@ a {
   display: none;
 }
 
-.buscador--horizontal .campo {
+.buscador--horizontal .campo--compacto {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
   flex: 1 1 auto;
-  min-width: 125px;
-  gap: .3rem;
+  min-width: 130px;
+  gap: .35rem;
   margin: 0;
 }
 
-.buscador--horizontal .campo label {
-  font-size: .68rem;
+.buscador--horizontal .campo--compacto label {
+  display: block;
+  font-size: .7rem;
   font-weight: 700;
   color: var(--c-texto-suave);
   text-transform: uppercase;
   letter-spacing: .03em;
   padding-left: .25rem;
+  margin: 0;
   white-space: nowrap;
 }
 
-/* Forzado de altura y padding vertical neutro para evitar truncado */
-.buscador--horizontal .campo input,
-.buscador--horizontal .campo select {
-  height: 44px !important;
-  min-height: 44px !important;
-  padding: 0 12px !important;
-  font-size: 14px !important;
-  line-height: normal !important;
-  border-radius: 10px !important;
+/* Inputs y Selects completamente normalizados */
+.buscador--horizontal .campo--compacto input,
+.buscador--horizontal .campo--compacto select {
+  height: 42px !important;
+  min-height: 42px !important;
+  line-height: 42px !important;
+  padding: 0 14px !important;
+  font-size: .88rem !important;
+  border-radius: 12px !important;
   background: var(--c-superficie-2) !important;
   border: 1px solid var(--c-borde) !important;
   color: var(--c-texto) !important;
   box-sizing: border-box !important;
-  display: block;
+  width: 100% !important;
+  outline: none !important;
 }
 
-.buscador--horizontal .campo select {
-  padding-right: 28px !important;
+.buscador--horizontal .campo--compacto select {
   cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%2364748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>') !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 11px !important;
+  padding-right: 32px !important;
 }
 
-.buscador--horizontal .campo input:focus,
-.buscador--horizontal .campo select:focus {
+.buscador--horizontal .campo--compacto input:focus,
+.buscador--horizontal .campo--compacto select:focus {
   background: var(--c-superficie) !important;
   border-color: var(--c-marca) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-marca) 18%, transparent) !important;
 }
 
 .buscador--horizontal .campo--palabra {
@@ -441,32 +454,35 @@ a {
 }
 
 .buscador--horizontal .campo--rango {
-  min-width: 130px;
+  min-width: 135px;
+}
+
+.campo__rango-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .7rem;
+  padding: 0 .2rem;
+  line-height: normal;
+}
+
+.campo__rango-header output {
+  font-weight: 700;
+  color: var(--c-marca);
 }
 
 .buscador--horizontal .campo--rango input[type="range"] {
-  height: 44px !important;
-  min-height: 44px !important;
+  height: 42px !important;
+  min-height: 42px !important;
   padding: 0 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-.buscador--horizontal .campo__rango-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: .68rem;
-}
-
-.buscador--horizontal .campo__rango-header output {
-  font-weight: 700;
-  color: var(--c-marca);
-}
-
 .buscador--horizontal .btn--filtrar-horizontal {
-  height: 44px !important;
+  height: 42px !important;
+  min-height: 42px !important;
   padding: 0 1.5rem !important;
   flex-shrink: 0;
   border-radius: 999px;
@@ -476,24 +492,40 @@ a {
   justify-content: center;
 }
 
-/* Responsivo para móviles */
-@media (max-width: 900px) {
-  .buscador--horizontal {
-    border-radius: var(--radio-sm);
-    flex-wrap: wrap;
-    gap: .6rem;
-    padding: .85rem;
-  }
+/* Campos globales de modales */
+.campo { 
+  display: flex; 
+  flex-direction: column; 
+  gap: .35rem; 
+}
 
-  .buscador--horizontal .campo {
-    flex: 1 1 calc(50% - .5rem);
-    min-width: 130px;
-  }
+.campo label { 
+  font-size: .78rem; 
+  font-weight: 700; 
+  color: var(--c-texto-suave); 
+  text-transform: uppercase; 
+}
 
-  .buscador--horizontal .btn--filtrar-horizontal {
-    width: 100%;
-    margin-top: .3rem;
-  }
+.campo input, .campo select, .campo textarea {
+  font: inherit; 
+  font-size: 15px; 
+  color: var(--c-texto);
+  background: var(--c-superficie); 
+  border: 1px solid var(--c-borde);
+  border-radius: var(--radio-sm); 
+  padding: .68rem .85rem; 
+  width: 100%;
+  transition: border-color var(--transicion), box-shadow var(--transicion);
+}
+
+.campo input:focus, .campo select:focus, .campo textarea:focus {
+  border-color: var(--c-marca);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-marca) 18%, transparent);
+}
+
+.campo--ancho { 
+  grid-column: 1 / -1; 
 }
 
 /* =========================================================
@@ -1136,23 +1168,30 @@ a {
   
   .vista { padding-bottom: 75px; }
 
-  /* Adaptación de barra de filtros */
+  /* Adaptación en pantalla móvil para que no se aprieten los títulos */
   .buscador--horizontal {
     border-radius: var(--radio-sm);
     flex-wrap: wrap;
-    gap: .5rem;
-    padding: .85rem;
+    gap: .75rem;
+    padding: 1rem;
   }
 
-  .campo--compacto {
+  .buscador--horizontal .campo--compacto {
     flex: 1 1 calc(50% - .5rem);
     min-width: 130px;
   }
 
-  .btn--filtrar-horizontal {
+  .buscador--horizontal .campo--compacto input,
+  .buscador--horizontal .campo--compacto select {
+    height: 44px !important;
+    min-height: 44px !important;
+    line-height: 44px !important;
+  }
+
+  .buscador--horizontal .btn--filtrar-horizontal {
     width: 100%;
-    height: 40px;
-    margin-top: .25rem;
+    height: 44px !important;
+    margin-top: .4rem;
   }
 
   /* Barra de Navegación Móvil */
