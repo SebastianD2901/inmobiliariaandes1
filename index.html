@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Los Andes Propiedades | Plataforma Inmobiliaria</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=9">
 
   <!-- SDKs de Firebase (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -21,7 +21,7 @@
         <span class="logo__texto">Los<strong>Andes</strong></span>
       </a>
 
-      <!-- Menú Desktop y Móvil -->
+      <!-- Menú Desktop -->
       <nav class="nav" id="nav-principal">
         <a href="#inicio" class="nav__enlace activo" data-navegar="inicio">Inicio</a>
         <a href="#propiedades" class="nav__enlace" data-navegar="propiedades">Propiedades</a>
@@ -43,7 +43,7 @@
 
   <main>
     <!-- ==========================================
-         VISTA 1: INICIO (PROPOSITO Y ACCIONES)
+         VISTA 1: INICIO (HERO Y PROPÓSITO)
          ========================================== -->
     <section class="vista vista--activa" id="vista-inicio">
       <div class="hero-impacto">
@@ -52,7 +52,7 @@
           <div class="circulo-luz luz-2"></div>
         </div>
         <div class="contenedor hero-impacto__inner">
-          <div class="hero-badge">LOS ANDES· Ecuador</div>
+          <div class="hero-badge">Los andes · Ecuador</div>
           <h1 class="hero-impacto__titulo">
             Conectamos hogares <span class="texto-gradiente">sin comisiones abusivas</span>.
           </h1>
@@ -69,7 +69,7 @@
             </button>
           </div>
 
-          <!-- Tarjetas interactivas de propósito -->
+          <!-- Tarjetas de propósito -->
           <div class="proposito-grid">
             <div class="proposito-card" data-navegar="propiedades">
               <div class="proposito-card__icono">🏠</div>
@@ -94,67 +94,81 @@
     <!-- ==========================================
          VISTA 2: CATÁLOGO DE PROPIEDADES
          ========================================== -->
-<!-- Barra de filtros horizontal compacta -->
-<form class="buscador buscador--horizontal" id="form-busqueda">
-  <div class="campo campo--compacto">
-    <label for="f-ciudad">Ciudad</label>
-    <select id="f-ciudad">
-      <option value="">Todas</option>
-      <option value="Riobamba">Riobamba</option>
-      <option value="Quito">Quito</option>
-      <option value="Guayaquil">Guayaquil</option>
-      <option value="Cuenca">Cuenca</option>
-      <option value="Ambato">Ambato</option>
-      <option value="Ibarra">Ibarra</option>
-      <option value="Loja">Loja</option>
-      <option value="Manta">Manta</option>
-      <option value="Portoviejo">Portoviejo</option>
-      <option value="Santo Domingo">Santo Domingo</option>
-    </select>
-  </div>
+    <section class="vista" id="vista-propiedades">
+      <div class="contenedor vista-contenedor">
+        <header class="vista-head">
+          <div>
+            <h2 class="vista-titulo">Catálogo Inmobiliario</h2>
+            <p class="vista-sub">Encuentra opciones disponibles por sector, ciudad y presupuesto.</p>
+          </div>
+        </header>
 
-  <div class="campo campo--compacto">
-    <label for="f-sector">Sector / Barrio</label>
-    <input type="search" id="f-sector" placeholder="Ej. Bellavista, Centro">
-  </div>
+        <!-- Barra de filtros horizontal compacta -->
+        <form class="buscador buscador--horizontal" id="form-busqueda">
+          <div class="campo campo--compacto">
+            <label for="f-ciudad">Ciudad</label>
+            <select id="f-ciudad">
+              <option value="">Todas</option>
+              <option value="Riobamba">Riobamba</option>
+              <option value="Quito">Quito</option>
+              <option value="Guayaquil">Guayaquil</option>
+              <option value="Cuenca">Cuenca</option>
+              <option value="Ambato">Ambato</option>
+              <option value="Ibarra">Ibarra</option>
+              <option value="Loja">Loja</option>
+              <option value="Manta">Manta</option>
+              <option value="Portoviejo">Portoviejo</option>
+              <option value="Santo Domingo">Santo Domingo</option>
+            </select>
+          </div>
 
-  <div class="campo campo--compacto">
-    <label for="f-operacion">Operación</label>
-    <select id="f-operacion">
-      <option value="">Todas</option>
-      <option value="venta">Venta</option>
-      <option value="alquiler">Alquiler</option>
-    </select>
-  </div>
+          <div class="campo campo--compacto">
+            <label for="f-sector">Sector / Barrio</label>
+            <input type="search" id="f-sector" placeholder="Ej. Bellavista, Centro">
+          </div>
 
-  <div class="campo campo--compacto">
-    <label for="f-tipo">Tipo</label>
-    <select id="f-tipo">
-      <option value="">Todos</option>
-      <option value="casa">Casa</option>
-      <option value="departamento">Departamento</option>
-      <option value="terreno">Terreno</option>
-      <option value="local">Local</option>
-    </select>
-  </div>
+          <div class="campo campo--compacto">
+            <label for="f-operacion">Operación</label>
+            <select id="f-operacion">
+              <option value="">Todas</option>
+              <option value="venta">Venta</option>
+              <option value="alquiler">Alquiler</option>
+            </select>
+          </div>
 
-  <div class="campo campo--compacto campo--palabra">
-    <label for="f-texto">Palabra clave</label>
-    <input type="search" id="f-texto" placeholder="Ej. suite, terraza">
-  </div>
+          <div class="campo campo--compacto">
+            <label for="f-tipo">Tipo</label>
+            <select id="f-tipo">
+              <option value="">Todos</option>
+              <option value="casa">Casa</option>
+              <option value="departamento">Departamento</option>
+              <option value="terreno">Terreno</option>
+              <option value="local">Local</option>
+            </select>
+          </div>
 
-  <div class="campo campo--compacto campo--rango">
-    <div class="campo__rango-header">
-      <label for="f-precio">Precio máx:</label>
-      <output id="salida-precio">$400.000</output>
-    </div>
-    <input type="range" id="f-precio" min="500" max="400000" step="500" value="400000">
-  </div>
+          <div class="campo campo--compacto campo--palabra">
+            <label for="f-texto">Palabra clave</label>
+            <input type="search" id="f-texto" placeholder="Ej. suite, terraza">
+          </div>
 
-  <button type="submit" class="btn btn--primario btn--sm btn--filtrar-horizontal">
-    <span>Filtrar</span>
-  </button>
-</form>
+          <div class="campo campo--compacto campo--rango">
+            <div class="campo__rango-header">
+              <label for="f-precio">Precio máx:</label>
+              <output id="salida-precio">$400.000</output>
+            </div>
+            <input type="range" id="f-precio" min="500" max="400000" step="500" value="400000">
+          </div>
+
+          <button type="submit" class="btn btn--primario btn--sm btn--filtrar-horizontal">
+            <span>Filtrar</span>
+          </button>
+        </form>
+
+        <div class="grilla" id="grilla-propiedades"></div>
+      </div>
+    </section>
+
     <!-- ==========================================
          VISTA 3: SIMULADOR HIPOTECARIO
          ========================================== -->
@@ -231,7 +245,7 @@
               </div>
             </div>
 
-            <a href="https://wa.me/593987654321?text=Hola%20deseo%20asesoria%20inmobiliaria" target="_blank" rel="noopener" class="btn btn--wa btn--full">
+            <a href="https://wa.me/593963651513?text=Hola%20deseo%20asesoria%20inmobiliaria" target="_blank" rel="noopener" class="btn btn--wa btn--full">
               Escribir al WhatsApp de Soporte
             </a>
           </div>
@@ -356,7 +370,7 @@
         <div class="campo"><label>Dormitorios</label><input type="number" id="pub-dorm" value="3" min="0"></div>
         <div class="campo"><label>Baños</label><input type="number" id="pub-banos" value="2" min="0"></div>
         <div class="campo campo--ancho"><label>Enlace de Ubicación (Google Maps)</label><input type="url" id="pub-mapa" placeholder="https://maps.app.goo.gl/... o https://maps.google.com/?q=..."></div>
-        <div class="campo campo--ancho"><label>Número de WhatsApp para contacto *</label><input type="tel" id="pub-wa" placeholder="Ej. 593987654321" required></div>
+        <div class="campo campo--ancho"><label>Número de WhatsApp para contacto *</label><input type="tel" id="pub-wa" placeholder="Ej. 0999999999" required></div>
         <div class="campo campo--ancho"><label>Descripción detallada</label><textarea id="pub-desc" rows="3" placeholder="Detalla los acabados, comodidades o cercanías..." required></textarea></div>
         <div class="campo campo--ancho"><label>Comodidades destacadas (separadas por coma)</label><input type="text" id="pub-caract" placeholder="Ej. Garaje techado, Guardianía 24/7, Jardín posterior, Área de asados"></div>
         <div class="campo campo--ancho">
@@ -368,6 +382,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=7"></script>
+  <script src="script.js?v=9"></script>
 </body>
 </html>

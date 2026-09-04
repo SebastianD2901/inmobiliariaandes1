@@ -1,5 +1,5 @@
 /* =========================================================
-   Andina Propiedades — Filtros por Ciudad/Sector y Modal Destacado
+   Andina Propiedades — SPA Routing & Cloudinary Integration
    ========================================================= */
 
 const CLOUDINARY_CLOUD_NAME = "ipe9us2o"; 
@@ -622,7 +622,6 @@ function abrirModalDetalle(p) {
   const telefonoContacto = p.asesorTelefono || "";
   const mensajeWA = encodeURIComponent(`Hola, vi en Los Andes su anuncio "${p.titulo}" por ${money(p.precio)}. ¿Sigue disponible?`);
   
-  // Cálculo de precio por m² si el área es válida
   const precioM2 = p.area > 0 ? money(Math.round(p.precio / p.area)) : null;
 
   $("#modal-contenido").innerHTML = `
@@ -819,7 +818,6 @@ $("#form-busqueda").addEventListener("submit", (e) => {
   filtrarYEjeCatalogo();
 });
 
-// Reaccionar a cambios en selectores de ciudad y operación en tiempo real
 $("#f-ciudad").addEventListener("change", filtrarYEjeCatalogo);
 $("#f-operacion").addEventListener("change", filtrarYEjeCatalogo);
 $("#f-tipo").addEventListener("change", filtrarYEjeCatalogo);
@@ -829,7 +827,7 @@ $("#btn-tema").addEventListener("click", () => {
   document.documentElement.setAttribute("data-theme", actual === "dark" ? "light" : "dark");
 });
 
-// Inicialización de la SPA
+// Inicialización
 const rutaInicial = window.location.hash.replace("#", "") || "inicio";
 cambiarVista(rutaInicial);
 calcularSimulador();
