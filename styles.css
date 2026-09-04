@@ -413,7 +413,6 @@ a {
   white-space: nowrap;
 }
 
-/* Inputs y Selects completamente normalizados */
 .buscador--horizontal .campo--compacto input,
 .buscador--horizontal .campo--compacto select {
   height: 42px !important;
@@ -490,42 +489,6 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Campos globales de modales */
-.campo { 
-  display: flex; 
-  flex-direction: column; 
-  gap: .35rem; 
-}
-
-.campo label { 
-  font-size: .78rem; 
-  font-weight: 700; 
-  color: var(--c-texto-suave); 
-  text-transform: uppercase; 
-}
-
-.campo input, .campo select, .campo textarea {
-  font: inherit; 
-  font-size: 15px; 
-  color: var(--c-texto);
-  background: var(--c-superficie); 
-  border: 1px solid var(--c-borde);
-  border-radius: var(--radio-sm); 
-  padding: .68rem .85rem; 
-  width: 100%;
-  transition: border-color var(--transicion), box-shadow var(--transicion);
-}
-
-.campo input:focus, .campo select:focus, .campo textarea:focus {
-  border-color: var(--c-marca);
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-marca) 18%, transparent);
-}
-
-.campo--ancho { 
-  grid-column: 1 / -1; 
 }
 
 /* =========================================================
@@ -897,6 +860,31 @@ a {
   gap: 1.1rem; 
 }
 
+.simulador-form .campo {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.simulador-form .campo label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--c-texto-suave);
+  text-transform: uppercase;
+}
+
+.simulador-form .campo input,
+.simulador-form .campo select {
+  font: inherit;
+  font-size: 15px;
+  color: var(--c-texto);
+  background: var(--c-superficie-2);
+  border: 1px solid var(--c-borde);
+  border-radius: var(--radio-sm);
+  padding: .68rem .85rem;
+  width: 100%;
+}
+
 .simulador-resultado {
   background: var(--c-superficie-2); 
   border-radius: var(--radio-sm);
@@ -1108,9 +1096,103 @@ a {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-.pub-caja { width: min(100%, 750px); padding: 1.8rem; }
-.pub-form { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem; }
-.btn--enviar-pub { padding: .9rem; font-size: 1rem; }
+/* =========================================================
+   FORMULARIO DE PUBLICACIÓN CALIBRADO Y MODERNO
+   ========================================================= */
+.pub-caja {
+  width: min(100%, 780px);
+  padding: 2.2rem;
+  background: var(--c-superficie);
+  border-radius: var(--radio);
+}
+
+.pub-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem 1.4rem;
+  margin-top: 1.5rem;
+}
+
+.pub-form .campo {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: .45rem !important;
+  width: 100% !important;
+}
+
+.pub-form .campo label {
+  display: block !important;
+  font-size: .8rem !important;
+  font-weight: 700 !important;
+  color: var(--c-texto-suave) !important;
+  text-transform: uppercase !important;
+  letter-spacing: .03em !important;
+}
+
+.pub-form .campo input,
+.pub-form .campo select,
+.pub-form .campo textarea {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  height: 46px !important;
+  padding: 0 14px !important;
+  font-size: .92rem !important;
+  font-family: inherit !important;
+  color: var(--c-texto) !important;
+  background: var(--c-superficie-2) !important;
+  border: 1px solid var(--c-borde) !important;
+  border-radius: 12px !important;
+  outline: none !important;
+  transition: border-color var(--transicion), background-color var(--transicion), box-shadow var(--transicion);
+}
+
+.pub-form .campo select {
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%2364748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>') !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px !important;
+  padding-right: 36px !important;
+}
+
+.pub-form .campo textarea {
+  height: auto !important;
+  min-height: 95px !important;
+  padding: 12px 14px !important;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.pub-form .campo input[type="file"] {
+  height: auto !important;
+  min-height: 46px !important;
+  padding: 8px 12px !important;
+  line-height: 28px !important;
+  cursor: pointer;
+}
+
+.pub-form .campo input:focus,
+.pub-form .campo select:focus,
+.pub-form .campo textarea:focus {
+  background: var(--c-superficie) !important;
+  border-color: var(--c-marca) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-marca) 18%, transparent) !important;
+}
+
+.pub-form .campo--ancho {
+  grid-column: 1 / -1 !important;
+}
+
+.btn--enviar-pub {
+  height: 48px !important;
+  padding: 0 2rem !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  margin-top: .5rem;
+}
 
 /* Barra Móvil Inferior */
 .barra-movil { display: none; }
@@ -1159,7 +1241,6 @@ a {
   .proposito-grid { grid-template-columns: 1fr; }
   .simulador-grid { grid-template-columns: 1fr; }
   .contacto-layout { grid-template-columns: 1fr; }
-  .pub-form { grid-template-columns: 1fr; }
   .modal__metricas-grid { grid-template-columns: 1fr; }
   
   .hero-impacto { padding: var(--sp-4) 0; }
@@ -1168,7 +1249,7 @@ a {
   
   .vista { padding-bottom: 75px; }
 
-  /* Adaptación en pantalla móvil para que no se aprieten los títulos */
+  /* Adaptación de barra de filtros */
   .buscador--horizontal {
     border-radius: var(--radio-sm);
     flex-wrap: wrap;
@@ -1192,6 +1273,16 @@ a {
     width: 100%;
     height: 44px !important;
     margin-top: .4rem;
+  }
+
+  /* Formulario modal en móvil */
+  .pub-caja {
+    padding: 1.5rem 1.2rem;
+  }
+
+  .pub-form {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   /* Barra de Navegación Móvil */
