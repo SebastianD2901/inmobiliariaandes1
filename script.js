@@ -1,10 +1,9 @@
 /* =========================================================
-   Andina Propiedades — Subida Gratuita con Cloudinary
+   Andina Propiedades — Código Completo con Cloudinary & Firestore
    ========================================================= */
 
-// REEMPLAZA ESTOS DOS VALORES CON LOS DE TU CUENTA DE CLOUDINARY:
 const CLOUDINARY_CLOUD_NAME = "ipe9us2o"; 
-const CLOUDINARY_UPLOAD_PRESET = "andina_preset";
+const CLOUDINARY_UPLOAD_PRESET = "andina_preset"; 
 
 const $ = (sel) => document.querySelector(sel);
 const money = (n) => new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -34,7 +33,7 @@ const PROPIEDAD_DEMO = {
 };
 
 // ==========================================
-// 1. CONFIGURACIÓN FIREBASE (SOLO AUTH & FIRESTORE)
+// 1. CONFIGURACIÓN FIREBASE
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyDLlfRoXdcr92D6jIxBZ3ZyXwb2s0Qql6Y",
@@ -80,12 +79,27 @@ db.collection("propiedades").onSnapshot(
 );
 
 // ==========================================
-// 3. SUBIDA DIRECTA A CLOUDINARY (FOTOS Y VIDEOS)
+// 3. DETECTOR DE MULTIMEDIA Y CLOUDINARY
 // ==========================================
-function esUrlDeVideo(url) {
+function obtenerStringUrl(item) {
+  if (!item) return "";
+  if (typeof item === "string") return item;
+  if (typeof item === "object" && item.url) return item.url;
+  return "";
+}
+
+function esUrlDeVideo(item) {
+  const url = obtenerStringUrl(item);
   if (!url) return false;
   const u = url.toLowerCase().split("?")[0];
-  return u.endsWith(".mp4") || u.endsWith(".webm") || u.endsWith(".mov") || url.includes("/video/upload/");
+  return (
+    u.endsWith(".mp4") ||
+    u.endsWith(".webm") ||
+    u.endsWith(".mov") ||
+    url.includes("/video/upload/") ||
+    url.startsWith("data:video/") ||
+    (typeof item === "object" && item.tipo === "video")
+  );
 }
 
 async function subirACloudinary(file) {
@@ -103,7 +117,7 @@ async function subirACloudinary(file) {
 
   if (!res.ok) {
     const errorData = await res.json();
-    throw new Error(errorData.error ? errorData.error.message : "Error al subir a Cloudinary");
+    throw new Error(errorData.error ? errorData.error.message : "Error al subir archivo");
   }
 
   const data = await res.json();
@@ -168,7 +182,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ==========================================
-// 6. FORMULARIO, PREVIEW Y GUARDADO CLOUD
+// 6. FORMULARIO, PREVIEW Y PUBLICACIÓN
 // ==========================================
 $("#btn-publicar").addEventListener("click", () => {
   prepararFormularioPublicacion(null);
@@ -213,7 +227,7 @@ function prepararFormularioPublicacion(propiedadAEditar) {
   }
 }
 
-// Paso 1: Vista Previa
+// Paso 1: Vista previa
 $("#form-publicar").addEventListener("submit", (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -325,7 +339,6 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
   try {
     let urlsFinales = [];
 
-    // Subir archivos reales a Cloudinary
     if (archivosSeleccionados && archivosSeleccionados.length > 0) {
       for (let i = 0; i < archivosSeleccionados.length; i++) {
         btnConfirmar.textContent = `Subiendo archivo ${i + 1} de ${archivosSeleccionados.length}...`;
@@ -335,12 +348,11 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
     } else if (esEdicion && idDoc) {
       const propExistente = PROPIEDADES.find(item => String(item.id) === String(idDoc));
       if (propExistente) {
-        urlsFinales = propExistente.galeria;
+        urlsFinales = (propExistente.galeria || []).map(item => obtenerStringUrl(item));
       }
     }
 
     p.galeria = urlsFinales;
-
     btnConfirmar.textContent = "Guardando en la base de datos...";
 
     if (esEdicion && idDoc) {
@@ -353,10 +365,10 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
     propiedadEnBorrador = null;
     archivosSeleccionados = [];
     $("#form-publicar").reset();
-    alert("¡Publicación guardada exitosamente! Ya es visible desde cualquier celular o computadora con fotos y videos.");
+    alert("¡Publicación guardada exitosamente! Ya es visible desde cualquier celular o computadora.");
   } catch (err) {
     console.error("Error al publicar:", err);
-    alert("Error al subir a Cloudinary / Firebase: " + err.message);
+    alert("Error al subir archivo: " + err.message);
   } finally {
     btnConfirmar.disabled = false;
     btnConfirmar.textContent = "Confirmar y Publicar";
@@ -387,23 +399,24 @@ async function eliminarPropiedad(id) {
 }
 
 // ==========================================
-// 8. MOTOR DE CARRUSEL CON SOPORTE DE VIDEO
+// 8. MOTOR DE CARRUSEL
 // ==========================================
 function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
   if (!galeria || galeria.length === 0) {
     return `<div class="carrusel-slide activo"><img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800" alt="Sin imagen"></div>`;
   }
 
-  const slides = galeria.map((url, index) => {
+  const slides = galeria.map((item, index) => {
     const esPrimerSlide = index === 0 ? "activo" : "";
-    const esVideo = esUrlDeVideo(url);
+    const urlLimpia = obtenerStringUrl(item);
+    const esVideo = esUrlDeVideo(item);
 
     if (esVideo) {
       return `
         <div class="carrusel-slide ${esPrimerSlide}" data-slide="${index}">
           <video class="carrusel-media" ${esModal ? 'controls playsinline' : 'muted loop autoplay playsinline'}>
-            <source src="${url}">
-            Tu dispositivo no puede reproducir este video.
+            <source src="${urlLimpia}">
+            Tu dispositivo no soporta este video.
           </video>
           ${!esModal ? '<span class="badge-multimedia">▶ Video</span>' : ''}
         </div>
@@ -412,7 +425,7 @@ function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
 
     return `
       <div class="carrusel-slide ${esPrimerSlide}" data-slide="${index}">
-        <img src="${url}" class="carrusel-media" alt="Propiedad">
+        <img src="${urlLimpia}" class="carrusel-media" alt="Propiedad">
       </div>
     `;
   }).join("");
