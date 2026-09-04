@@ -1,5 +1,5 @@
 /* =========================================================
-   Andina Propiedades — Lógica Estable sin Recargas
+   Andina Propiedades — Sincronización Compatible con Firestore
    ========================================================= */
 
 const $ = (sel) => document.querySelector(sel);
@@ -24,12 +24,13 @@ const PROPIEDAD_DEMO = {
   ubicacionUrl: "https://maps.google.com/?q=-1.67098,-78.64712",
   descripcion: "Hermosa casa de dos plantas en conjunto cerrado con guardianía 24/7, amplias zonas verdes y acabados de primera.",
   caracteristicas: ["Conjunto cerrado", "Guardianía 24/7", "Área de asados", "Garaje techado"],
-  asesor: { nombre: "Andina Propiedades", telefono: "593990000001" },
-  galeria: [{ tipo: "imagen", url: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&auto=format&fit=crop&q=60" }]
+  asesorNombre: "Andina Propiedades",
+  asesorTelefono: "593990000001",
+  galeria: ["https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&auto=format&fit=crop&q=60"]
 };
 
 // ==========================================
-// 1. FIREBASE CONFIGURACIÓN
+// 1. CONFIGURACIÓN FIREBASE
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyDLlfRoXdcr92D6jIxBZ3ZyXwb2s0Qql6Y",
@@ -53,7 +54,7 @@ let usuarioActual = null;
 let propiedadEnBorrador = null;
 
 // ==========================================
-// 2. SINCRONIZACIÓN PERSISTENTE FIRESTORE
+// 2. ESCUCHA ACTIVA DE FIRESTORE
 // ==========================================
 db.collection("propiedades").onSnapshot(
   (snapshot) => {
@@ -74,7 +75,7 @@ db.collection("propiedades").onSnapshot(
 );
 
 // ==========================================
-// 3. COMPRESIÓN DE IMÁGENES
+// 3. COMPRESIÓN DE FOTOS A STRING PLANO
 // ==========================================
 function comprimirImagen(file) {
   return new Promise((resolve) => {
@@ -106,12 +107,10 @@ function comprimirImagen(file) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        resolve({
-          tipo: "imagen",
-          url: canvas.toDataURL("image/jpeg", 0.6)
-        });
+        // Devuelve una cadena de texto plana (no un objeto anidado)
+        resolve(canvas.toDataURL("image/jpeg", 0.55));
       };
-      img.onerror = () => resolve({ tipo: "imagen", url: event.target.result });
+      img.onerror = () => resolve(event.target.result);
     };
   });
 }
@@ -173,7 +172,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ==========================================
-// 6. FORMULARIO, PREVIEW Y GUARDADO REAL
+// 6. FORMULARIO, PREVIEW Y GUARDADO LIMPIO
 // ==========================================
 $("#btn-publicar").addEventListener("click", () => {
   prepararFormularioPublicacion(null);
@@ -204,7 +203,7 @@ function prepararFormularioPublicacion(propiedadAEditar) {
     $("#pub-area").value = propiedadAEditar.area;
     $("#pub-anio").value = propiedadAEditar.anio;
     $("#pub-mapa").value = propiedadAEditar.ubicacionUrl || "";
-    $("#pub-wa").value = propiedadAEditar.asesor.telefono;
+    $("#pub-wa").value = propiedadAEditar.asesorTelefono || "";
     $("#pub-desc").value = propiedadAEditar.descripcion;
     $("#pub-caract").value = (propiedadAEditar.caracteristicas || []).join(", ");
   } else {
@@ -217,7 +216,6 @@ function prepararFormularioPublicacion(propiedadAEditar) {
   }
 }
 
-// 1er paso: Previsualizar
 $("#form-publicar").addEventListener("submit", async (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -225,23 +223,24 @@ $("#form-publicar").addEventListener("submit", async (e) => {
   const idEditar = $("#pub-id-editar").value;
   const archivos = $("#pub-fotos").files;
 
-  let galeriaItems = [];
+  let urlsFotos = [];
 
   if (archivos && archivos.length > 0) {
     const promesas = Array.from(archivos).map(file => comprimirImagen(file));
-    galeriaItems = await Promise.all(promesas);
+    urlsFotos = await Promise.all(promesas);
   } else if (idEditar) {
     const propExistente = PROPIEDADES.find(p => String(p.id) === String(idEditar));
     if (propExistente) {
-      galeriaItems = propExistente.galeria;
+      urlsFotos = propExistente.galeria || [];
     }
   }
 
-  if (!galeriaItems || galeriaItems.length === 0) {
+  if (!urlsFotos || urlsFotos.length === 0) {
     alert("Por favor selecciona al menos una fotografía.");
     return;
   }
 
+  // Estructura limpia de primer nivel (sin objetos anidados en arrays)
   propiedadEnBorrador = {
     id: idEditar || null,
     creadorUid: usuarioActual ? usuarioActual.uid : (idEditar ? PROPIEDADES.find(p => String(p.id) === String(idEditar))?.creadorUid : null),
@@ -259,11 +258,9 @@ $("#form-publicar").addEventListener("submit", async (e) => {
     descripcion: $("#pub-desc").value.trim(),
     caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
     estado: "disponible",
-    asesor: {
-      nombre: usuarioActual ? (usuarioActual.displayName || usuarioActual.email.split("@")[0]) : "Propietario",
-      telefono: $("#pub-wa").value.replace(/\D/g, '')
-    },
-    galeria: galeriaItems,
+    asesorNombre: usuarioActual ? (usuarioActual.displayName || usuarioActual.email.split("@")[0]) : "Propietario",
+    asesorTelefono: $("#pub-wa").value.replace(/\D/g, ''),
+    galeria: urlsFotos,
     destacada: true,
     creadoEn: Date.now(),
     esEdicion: Boolean(idEditar)
@@ -310,7 +307,7 @@ $("#btn-preview-volver").addEventListener("click", (e) => {
   $("#modal-publicar").hidden = false;
 });
 
-// 2do paso: Confirmar y guardar sin recargar
+// Guardar en Firestore sin anidamientos inválidos
 $("#btn-preview-confirmar").addEventListener("click", async (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -319,19 +316,19 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
 
   const btnConfirmar = $("#btn-preview-confirmar");
   btnConfirmar.disabled = true;
-  btnConfirmar.textContent = "Guardando...";
+  btnConfirmar.textContent = "Guardando en la base de datos...";
 
   const p = { ...propiedadEnBorrador };
   const esEdicion = p.esEdicion;
   const idDoc = p.id;
+  
   delete p.esEdicion;
+  delete p.id;
 
   try {
     if (esEdicion && idDoc) {
-      delete p.id;
       await db.collection("propiedades").doc(String(idDoc)).set(p, { merge: true });
     } else {
-      delete p.id;
       await db.collection("propiedades").add(p);
     }
 
@@ -379,11 +376,11 @@ function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
     return `<div class="carrusel-slide activo"><img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800" alt="Sin imagen"></div>`;
   }
 
-  const slides = galeria.map((item, index) => {
+  const slides = galeria.map((url, index) => {
     const esPrimerSlide = index === 0 ? "activo" : "";
     return `
       <div class="carrusel-slide ${esPrimerSlide}" data-slide="${index}">
-        <img src="${item.url}" class="carrusel-media" alt="Inmueble">
+        <img src="${url}" class="carrusel-media" alt="Inmueble">
       </div>
     `;
   }).join("");
@@ -490,7 +487,6 @@ function renderizarCatalogo(lista) {
   }).join("");
 }
 
-// Clic en tarjetas
 $("#grilla-propiedades").addEventListener("click", (e) => {
   if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) return;
 
@@ -514,6 +510,7 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
 function abrirModalDetalle(p) {
   const esPropietario = Boolean(usuarioActual && p.creadorUid && usuarioActual.uid === p.creadorUid);
   const estaCerrado = p.estado === "vendido" || p.estado === "alquilado";
+  const telefonoContacto = p.asesorTelefono || "";
   const mensajeWA = encodeURIComponent(`Hola, vi en Los Andes su anuncio "${p.titulo}" por ${money(p.precio)}. ¿Sigue disponible?`);
 
   $("#modal-contenido").innerHTML = `
@@ -565,7 +562,7 @@ function abrirModalDetalle(p) {
           </a>
         ` : ''}
         ${!estaCerrado ? `
-          <a class="btn btn--wa btn--full" href="https://wa.me/${p.asesor.telefono}?text=${mensajeWA}" target="_blank" rel="noopener">
+          <a class="btn btn--wa btn--full" href="https://wa.me/${telefonoContacto}?text=${mensajeWA}" target="_blank" rel="noopener">
             Contactar por WhatsApp
           </a>
         ` : `
