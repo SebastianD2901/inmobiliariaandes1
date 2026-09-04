@@ -260,29 +260,115 @@ a { color: var(--c-marca); text-decoration: none; }
 /* =========================================================
    BUSCADOR DE INMUEBLES MEJORADO (6 COLUMNAS)
    ========================================================= */
-.buscador--inmuebles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
-  gap: var(--sp-2);
-  align-items: end;
+/* =========================================================
+   BARRA DE FILTROS HORIZONTAL ULTRA COMPACTA
+   ========================================================= */
+.buscador--horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: .65rem;
   background: var(--c-superficie);
   border: 1px solid var(--c-borde);
-  border-radius: var(--radio);
+  border-radius: 999px; /* Aspecto de cápsula delgada */
   box-shadow: var(--sombra);
-  padding: 1.25rem;
+  padding: .5rem 1rem;
   margin-bottom: var(--sp-3);
+  overflow-x: auto; /* Permite scroll lateral en pantallas medianas sin descuadrar */
+  scrollbar-width: none; /* Oculta barra de scroll en Firefox */
 }
 
-.campo { display: flex; flex-direction: column; gap: .35rem; }
-.campo label { font-size: .78rem; font-weight: 700; color: var(--c-texto-suave); text-transform: uppercase; }
-.campo input, .campo select, .campo textarea {
-  font: inherit; font-size: 15px; color: var(--c-texto);
-  background: var(--c-superficie); border: 1px solid var(--c-borde);
-  border-radius: var(--radio-sm); padding: .68rem .85rem; width: 100%;
+.buscador--horizontal::-webkit-scrollbar {
+  display: none; /* Oculta barra de scroll en Chrome/Safari */
 }
-.campo input[type="range"] { padding: 0; border: none; accent-color: var(--c-marca); }
-.campo--ancho { grid-column: 1 / -1; }
 
+/* Campos compactos de altura reducida */
+.campo--compacto {
+  flex: 1 1 auto;
+  min-width: 120px;
+  gap: .15rem;
+}
+
+.campo--compacto label {
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--c-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  padding-left: .2rem;
+  white-space: nowrap;
+}
+
+.campo--compacto input,
+.campo--compacto select {
+  font-size: .85rem;
+  padding: .38rem .65rem;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--c-superficie-2);
+  border: 1px solid transparent;
+}
+
+.campo--compacto input:focus,
+.campo--compacto select:focus {
+  background: var(--c-superficie);
+  border-color: var(--c-marca);
+}
+
+.campo--compacto.campo--palabra {
+  min-width: 140px;
+}
+
+.campo--compacto.campo--rango {
+  min-width: 130px;
+}
+
+.campo__rango-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .68rem;
+}
+
+.campo__rango-header output {
+  font-weight: 700;
+  color: var(--c-marca);
+}
+
+.campo--compacto input[type="range"] {
+  height: 18px;
+  background: transparent;
+  padding: 0;
+}
+
+.btn--filtrar-horizontal {
+  height: 34px;
+  padding: 0 1.2rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-size: .84rem;
+}
+
+/* Adaptación para pantallas pequeñas */
+@media (max-width: 900px) {
+  .buscador--horizontal {
+    border-radius: var(--radio-sm);
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .85rem;
+  }
+
+  .campo--compacto {
+    flex: 1 1 calc(50% - .5rem);
+    min-width: 130px;
+  }
+
+  .btn--filtrar-horizontal {
+    width: 100%;
+    height: 38px;
+    margin-top: .25rem;
+  }
+}
 /* Grilla Inmuebles */
 .grilla {
   display: grid;

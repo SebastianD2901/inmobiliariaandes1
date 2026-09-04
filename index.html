@@ -94,70 +94,67 @@
     <!-- ==========================================
          VISTA 2: CATÁLOGO DE PROPIEDADES
          ========================================== -->
-    <section class="vista" id="vista-propiedades">
-      <div class="contenedor vista-contenedor">
-        <header class="vista-head">
-          <div>
-            <h2 class="vista-titulo">Catálogo Inmobiliario</h2>
-            <p class="vista-sub">Filtra por ciudad, sector y tipo de inmueble para encontrar la opción ideal.</p>
-          </div>
-        </header>
+<!-- Barra de filtros horizontal compacta -->
+<form class="buscador buscador--horizontal" id="form-busqueda">
+  <div class="campo campo--compacto">
+    <label for="f-ciudad">Ciudad</label>
+    <select id="f-ciudad">
+      <option value="">Todas</option>
+      <option value="Riobamba">Riobamba</option>
+      <option value="Quito">Quito</option>
+      <option value="Guayaquil">Guayaquil</option>
+      <option value="Cuenca">Cuenca</option>
+      <option value="Ambato">Ambato</option>
+      <option value="Ibarra">Ibarra</option>
+      <option value="Loja">Loja</option>
+      <option value="Manta">Manta</option>
+      <option value="Portoviejo">Portoviejo</option>
+      <option value="Santo Domingo">Santo Domingo</option>
+    </select>
+  </div>
 
-        <!-- Buscador con filtros de Ciudad y Sector -->
-        <form class="buscador buscador--inmuebles" id="form-busqueda">
-          <div class="campo">
-            <label>Ciudad</label>
-            <select id="f-ciudad">
-              <option value="">Todas las ciudades</option>
-              <option value="Riobamba">Riobamba</option>
-              <option value="Quito">Quito</option>
-              <option value="Guayaquil">Guayaquil</option>
-              <option value="Cuenca">Cuenca</option>
-              <option value="Ambato">Ambato</option>
-              <option value="Ibarra">Ibarra</option>
-              <option value="Loja">Loja</option>
-              <option value="Manta">Manta</option>
-              <option value="Portoviejo">Portoviejo</option>
-              <option value="Santo Domingo">Santo Domingo</option>
-            </select>
-          </div>
-          <div class="campo">
-            <label>Sector / Barrio</label>
-            <input type="search" id="f-sector" placeholder="Ej. Bellavista, Maldonado, Centro">
-          </div>
-          <div class="campo">
-            <label>Operación</label>
-            <select id="f-operacion">
-              <option value="">Todas</option>
-              <option value="venta">Venta</option>
-              <option value="alquiler">Alquiler</option>
-            </select>
-          </div>
-          <div class="campo">
-            <label>Tipo</label>
-            <select id="f-tipo">
-              <option value="">Todos</option>
-              <option value="casa">Casa</option>
-              <option value="departamento">Departamento</option>
-              <option value="terreno">Terreno</option>
-              <option value="local">Local comercial</option>
-            </select>
-          </div>
-          <div class="campo">
-            <label>Palabra clave</label>
-            <input type="search" id="f-texto" placeholder="Ej. suite, jardín, terraza">
-          </div>
-          <div class="campo">
-            <label>Precio máx: <output id="salida-precio">$400.000</output></label>
-            <input type="range" id="f-precio" min="500" max="400000" step="500" value="400000">
-          </div>
-          <button type="submit" class="btn btn--primario btn--buscar">Filtrar</button>
-        </form>
+  <div class="campo campo--compacto">
+    <label for="f-sector">Sector / Barrio</label>
+    <input type="search" id="f-sector" placeholder="Ej. Bellavista, Centro">
+  </div>
 
-        <div class="grilla" id="grilla-propiedades"></div>
-      </div>
-    </section>
+  <div class="campo campo--compacto">
+    <label for="f-operacion">Operación</label>
+    <select id="f-operacion">
+      <option value="">Todas</option>
+      <option value="venta">Venta</option>
+      <option value="alquiler">Alquiler</option>
+    </select>
+  </div>
 
+  <div class="campo campo--compacto">
+    <label for="f-tipo">Tipo</label>
+    <select id="f-tipo">
+      <option value="">Todos</option>
+      <option value="casa">Casa</option>
+      <option value="departamento">Departamento</option>
+      <option value="terreno">Terreno</option>
+      <option value="local">Local</option>
+    </select>
+  </div>
+
+  <div class="campo campo--compacto campo--palabra">
+    <label for="f-texto">Palabra clave</label>
+    <input type="search" id="f-texto" placeholder="Ej. suite, terraza">
+  </div>
+
+  <div class="campo campo--compacto campo--rango">
+    <div class="campo__rango-header">
+      <label for="f-precio">Precio máx:</label>
+      <output id="salida-precio">$400.000</output>
+    </div>
+    <input type="range" id="f-precio" min="500" max="400000" step="500" value="400000">
+  </div>
+
+  <button type="submit" class="btn btn--primario btn--sm btn--filtrar-horizontal">
+    <span>Filtrar</span>
+  </button>
+</form>
     <!-- ==========================================
          VISTA 3: SIMULADOR HIPOTECARIO
          ========================================== -->
