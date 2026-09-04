@@ -2,15 +2,15 @@
 <html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Andina Propiedades | Venta y alquiler de inmuebles</title>
   <link rel="stylesheet" href="styles.css">
 
-  <!-- ============ SDKs de Firebase (Compat) ============ -->
+  <!-- SDKs de Firebase (Versión 10.8.1 Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-  <!-- SDK de Firestore para compartir publicaciones entre dispositivos -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -46,7 +46,7 @@
     <section class="hero">
       <div class="contenedor hero__inner">
         <p class="hero__kicker">Riobamba · Chimborazo · Ecuador</p>
-        <h1 class="hero__titulo">La propiedad correcta, en el sector correcto, al precio correcto.</h1>
+        <h1 class="hero__titulo">La casa correcta, en el sector correcto, al precio correcto.</h1>
         <form class="buscador" id="form-busqueda">
           <div class="campo"><label>Operación</label><select id="f-operacion"><option value="">Todas</option><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
           <div class="campo"><label>Tipo</label><select id="f-tipo"><option value="">Todos</option><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="terreno">Terreno</option><option value="local">Local</option></select></div>
@@ -62,8 +62,8 @@
       <div class="contenedor">
         <header class="seccion__head">
           <div>
-            <h2 class="seccion__titulo">PropiedadEs disponibles</h2>
-            <p class="seccion__sub">Explora inmuebles publicados por la comunidad en tiempo real.</p>
+            <h2 class="seccion__titulo">Propiedades disponibles</h2>
+            <p class="seccion__sub">Sincronizadas en la nube para todos los dispositivos.</p>
           </div>
         </header>
         <div class="grilla" id="grilla-propiedades"></div>
@@ -124,7 +124,7 @@
 
       <div class="footer__col">
         <h4 class="footer__titulo">Soporte y Atención</h4>
-        <p class="footer__texto">¿Necesitas ayuda con tu publicación?</p>
+        <p class="footer__texto">¿Dudas o problemas al publicar?</p>
         <a href="https://wa.me/593987654321?text=Hola%20necesito%20soporte" target="_blank" rel="noopener" class="btn btn--wa btn--sm">WhatsApp de Soporte</a>
       </div>
 
@@ -145,7 +145,7 @@
     </div>
   </footer>
 
-  <!-- ============ MODAL DETALLE DE PROPIEDAD ============ -->
+  <!-- MODAL DETALLE -->
   <div class="modal" id="modal" hidden>
     <div class="modal__fondo" data-cerrar="modal"></div>
     <div class="modal__caja">
@@ -154,32 +154,29 @@
     </div>
   </div>
 
-  <!-- ============ MODAL PREVISUALIZACIÓN ANTES DE PUBLICAR ============ -->
+  <!-- MODAL PREVIEW -->
   <div class="modal" id="modal-preview" hidden>
     <div class="modal__fondo" data-cerrar="modal-preview"></div>
     <div class="modal__caja">
       <button class="modal__cerrar" type="button" data-cerrar="modal-preview" aria-label="Cerrar modal">&times;</button>
-      <div class="preview-barra">
-        <span>👁️ Vista Previa: Así verán tu propiedad los interesados</span>
-      </div>
+      <div class="preview-barra"><span>👁️ Vista Previa: Así se verá tu publicación</span></div>
       <div class="modal__contenido" id="preview-contenido"></div>
       <div class="preview-acciones">
-        <button type="button" class="btn btn--secundario" id="btn-preview-volver">← Seguir editando</button>
-        <button type="button" class="btn btn--primario" id="btn-preview-confirmar">Confirmar y Publicar en la nube</button>
+        <button type="button" class="btn btn--secundario" id="btn-preview-volver">← Regresar y Modificar</button>
+        <button type="button" class="btn btn--primario" id="btn-preview-confirmar">Confirmar y Publicar</button>
       </div>
     </div>
   </div>
 
-  <!-- ============ MODAL AUTENTICACIÓN GOOGLE ============ -->
+  <!-- MODAL AUTH -->
   <div class="modal" id="modal-auth" hidden>
     <div class="modal__fondo" data-cerrar="modal-auth"></div>
     <div class="modal__caja auth-caja">
       <button class="modal__cerrar" type="button" data-cerrar="modal-auth" aria-label="Cerrar modal">&times;</button>
       <div class="auth-header">
         <h2>Acceso Propietarios</h2>
-        <p class="seccion__sub">Inicia sesión con tu cuenta de Google para publicar y gestionar tus inmuebles.</p>
+        <p class="seccion__sub">Inicia sesión con tu cuenta de Google para publicar.</p>
       </div>
-      
       <button id="btn-google" class="btn-google" type="button">
         <svg class="google-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -189,12 +186,11 @@
         </svg>
         <span>Continuar con Google</span>
       </button>
-      
       <p class="error" id="auth-error"></p>
     </div>
   </div>
 
-  <!-- ============ MODAL PUBLICACIÓN / EDICIÓN ============ -->
+  <!-- MODAL PUBLICAR -->
   <div class="modal" id="modal-publicar" hidden>
     <div class="modal__fondo" data-cerrar="modal-publicar"></div>
     <div class="modal__caja pub-caja">
@@ -204,7 +200,6 @@
       
       <form id="form-publicar" class="pub-form">
         <input type="hidden" id="pub-id-editar" value="">
-
         <div class="campo campo--ancho"><label>Título del anuncio *</label><input type="text" id="pub-titulo" placeholder="Ej. Casa de 2 plantas frente a parque" required></div>
         <div class="campo"><label>Operación *</label><select id="pub-operacion" required><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
         <div class="campo"><label>Tipo de inmueble *</label><select id="pub-tipo" required><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="terreno">Terreno</option><option value="local">Local comercial</option></select></div>
@@ -222,7 +217,7 @@
         <div class="campo"><label>Año de construcción</label><input type="number" id="pub-anio" value="2024"></div>
         
         <div class="campo campo--ancho">
-          <label>Enlace de Ubicación (Google Maps URL o Coordenadas)</label>
+          <label>Enlace de Ubicación (Google Maps o Coordenadas)</label>
           <input type="url" id="pub-mapa" placeholder="https://maps.app.goo.gl/... o https://maps.google.com/?q=...">
         </div>
 
@@ -231,9 +226,8 @@
         <div class="campo campo--ancho"><label>Características (separadas por coma)</label><input type="text" id="pub-caract" placeholder="Ej. Garaje, Patio, Terraza, Guardianía"></div>
         
         <div class="campo campo--ancho">
-          <label id="lbl-fotos">Fotos y Videos (Archivos multimedia) *</label>
-          <input type="file" id="pub-fotos" accept="image/*,video/*" multiple>
-          <small style="color:var(--c-texto-suave); font-size:0.75rem;">Imágenes o videos cortos. En modo edición, si no seleccionas nada se mantendrán los archivos previos.</small>
+          <label id="lbl-fotos">Fotos y Videos *</label>
+          <input type="file" id="pub-fotos" accept="image/*,video/mp4,video/webm" multiple>
         </div>
 
         <button type="submit" class="btn btn--primario campo--ancho btn--enviar-pub" id="btn-submit-pub">Previsualizar publicación</button>
@@ -241,6 +235,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=2"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>

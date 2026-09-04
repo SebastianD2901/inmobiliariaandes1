@@ -1,6 +1,10 @@
 /* =========================================================
-   Andina Propiedades — Sincronización Compatible con Firestore
+   Andina Propiedades — Subida Gratuita con Cloudinary
    ========================================================= */
+
+// REEMPLAZA ESTOS DOS VALORES CON LOS DE TU CUENTA DE CLOUDINARY:
+const CLOUDINARY_CLOUD_NAME = "ipe9us2o"; 
+const CLOUDINARY_UPLOAD_PRESET = "andina_preset";
 
 const $ = (sel) => document.querySelector(sel);
 const money = (n) => new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -30,7 +34,7 @@ const PROPIEDAD_DEMO = {
 };
 
 // ==========================================
-// 1. CONFIGURACIÓN FIREBASE
+// 1. CONFIGURACIÓN FIREBASE (SOLO AUTH & FIRESTORE)
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyDLlfRoXdcr92D6jIxBZ3ZyXwb2s0Qql6Y",
@@ -52,6 +56,7 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 let PROPIEDADES = [];
 let usuarioActual = null;
 let propiedadEnBorrador = null;
+let archivosSeleccionados = [];
 
 // ==========================================
 // 2. ESCUCHA ACTIVA DE FIRESTORE
@@ -70,49 +75,39 @@ db.collection("propiedades").onSnapshot(
     renderizarCatalogo(PROPIEDADES);
   },
   (err) => {
-    console.error("Fallo al escuchar Firestore:", err);
+    console.error("Fallo al sincronizar con Firestore:", err);
   }
 );
 
 // ==========================================
-// 3. COMPRESIÓN DE FOTOS A STRING PLANO
+// 3. SUBIDA DIRECTA A CLOUDINARY (FOTOS Y VIDEOS)
 // ==========================================
-function comprimirImagen(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const maxMedida = 700;
-        let width = img.width;
-        let height = img.height;
+function esUrlDeVideo(url) {
+  if (!url) return false;
+  const u = url.toLowerCase().split("?")[0];
+  return u.endsWith(".mp4") || u.endsWith(".webm") || u.endsWith(".mov") || url.includes("/video/upload/");
+}
 
-        if (width > height) {
-          if (width > maxMedida) {
-            height = Math.round((height * maxMedida) / width);
-            width = maxMedida;
-          }
-        } else {
-          if (height > maxMedida) {
-            width = Math.round((width * maxMedida) / height);
-            height = maxMedida;
-          }
-        }
+async function subirACloudinary(file) {
+  const esVideo = file.type.startsWith("video/");
+  const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${esVideo ? "video" : "image"}/upload`;
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
-        // Devuelve una cadena de texto plana (no un objeto anidado)
-        resolve(canvas.toDataURL("image/jpeg", 0.55));
-      };
-      img.onerror = () => resolve(event.target.result);
-    };
+  const res = await fetch(endpoint, {
+    method: "POST",
+    body: formData
   });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error ? errorData.error.message : "Error al subir a Cloudinary");
+  }
+
+  const data = await res.json();
+  return data.secure_url;
 }
 
 // ==========================================
@@ -153,6 +148,7 @@ $("#btn-google").addEventListener("click", () => {
 function cerrarCualquierModal() {
   document.querySelectorAll(".modal").forEach(m => {
     m.hidden = true;
+    m.querySelectorAll("video").forEach(v => v.pause());
   });
   document.body.classList.remove("sin-scroll");
   const authErr = $("#auth-error");
@@ -172,7 +168,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ==========================================
-// 6. FORMULARIO, PREVIEW Y GUARDADO LIMPIO
+// 6. FORMULARIO, PREVIEW Y GUARDADO CLOUD
 // ==========================================
 $("#btn-publicar").addEventListener("click", () => {
   prepararFormularioPublicacion(null);
@@ -183,14 +179,15 @@ $("#btn-publicar").addEventListener("click", () => {
 function prepararFormularioPublicacion(propiedadAEditar) {
   const form = $("#form-publicar");
   form.reset();
+  archivosSeleccionados = [];
 
   if (propiedadAEditar) {
     $("#pub-modal-titulo").textContent = "Editar Inmueble";
-    $("#pub-modal-sub").textContent = "Actualiza los datos y confirma en la vista previa.";
+    $("#pub-modal-sub").textContent = "Actualiza los datos y revisa la vista previa.";
     $("#btn-submit-pub").textContent = "Previsualizar Cambios";
     $("#pub-id-editar").value = propiedadAEditar.id;
     $("#pub-fotos").required = false;
-    $("#lbl-fotos").textContent = "Reemplazar Fotos (Opcional)";
+    $("#lbl-fotos").textContent = "Reemplazar Fotos / Videos (Opcional)";
 
     $("#pub-titulo").value = propiedadAEditar.titulo;
     $("#pub-operacion").value = propiedadAEditar.operacion;
@@ -212,35 +209,35 @@ function prepararFormularioPublicacion(propiedadAEditar) {
     $("#btn-submit-pub").textContent = "Previsualizar publicación";
     $("#pub-id-editar").value = "";
     $("#pub-fotos").required = true;
-    $("#lbl-fotos").textContent = "Fotos (Archivos JPG o PNG) *";
+    $("#lbl-fotos").textContent = "Fotos y Videos *";
   }
 }
 
-$("#form-publicar").addEventListener("submit", async (e) => {
+// Paso 1: Vista Previa
+$("#form-publicar").addEventListener("submit", (e) => {
   e.preventDefault();
   e.stopPropagation();
 
   const idEditar = $("#pub-id-editar").value;
-  const archivos = $("#pub-fotos").files;
+  const inputFotos = $("#pub-fotos");
+  archivosSeleccionados = Array.from(inputFotos.files);
 
-  let urlsFotos = [];
+  let urlsPreview = [];
 
-  if (archivos && archivos.length > 0) {
-    const promesas = Array.from(archivos).map(file => comprimirImagen(file));
-    urlsFotos = await Promise.all(promesas);
+  if (archivosSeleccionados.length > 0) {
+    urlsPreview = archivosSeleccionados.map(file => URL.createObjectURL(file));
   } else if (idEditar) {
     const propExistente = PROPIEDADES.find(p => String(p.id) === String(idEditar));
     if (propExistente) {
-      urlsFotos = propExistente.galeria || [];
+      urlsPreview = propExistente.galeria || [];
     }
   }
 
-  if (!urlsFotos || urlsFotos.length === 0) {
-    alert("Por favor selecciona al menos una fotografía.");
+  if (urlsPreview.length === 0) {
+    alert("Por favor selecciona al menos una fotografía o video.");
     return;
   }
 
-  // Estructura limpia de primer nivel (sin objetos anidados en arrays)
   propiedadEnBorrador = {
     id: idEditar || null,
     creadorUid: usuarioActual ? usuarioActual.uid : (idEditar ? PROPIEDADES.find(p => String(p.id) === String(idEditar))?.creadorUid : null),
@@ -260,7 +257,7 @@ $("#form-publicar").addEventListener("submit", async (e) => {
     estado: "disponible",
     asesorNombre: usuarioActual ? (usuarioActual.displayName || usuarioActual.email.split("@")[0]) : "Propietario",
     asesorTelefono: $("#pub-wa").value.replace(/\D/g, ''),
-    galeria: urlsFotos,
+    galeriaPreview: urlsPreview,
     destacada: true,
     creadoEn: Date.now(),
     esEdicion: Boolean(idEditar)
@@ -272,7 +269,7 @@ $("#form-publicar").addEventListener("submit", async (e) => {
 function mostrarModalPreview(p) {
   $("#preview-contenido").innerHTML = `
     <div class="modal__imagen-wrap">
-      ${generarHtmlCarrusel(p.galeria, `carrusel-preview`, true)}
+      ${generarHtmlCarrusel(p.galeriaPreview, `carrusel-preview`, true)}
       <span class="chip chip--operacion">${p.operacion === "venta" ? "En Venta" : "En Alquiler"}</span>
     </div>
     <div class="modal__detalles">
@@ -307,7 +304,7 @@ $("#btn-preview-volver").addEventListener("click", (e) => {
   $("#modal-publicar").hidden = false;
 });
 
-// Guardar en Firestore sin anidamientos inválidos
+// Paso 2: Subir a Cloudinary y guardar en Firestore
 $("#btn-preview-confirmar").addEventListener("click", async (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -316,16 +313,36 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
 
   const btnConfirmar = $("#btn-preview-confirmar");
   btnConfirmar.disabled = true;
-  btnConfirmar.textContent = "Guardando en la base de datos...";
+  btnConfirmar.textContent = "Subiendo fotos y videos a la nube...";
 
   const p = { ...propiedadEnBorrador };
   const esEdicion = p.esEdicion;
   const idDoc = p.id;
-  
   delete p.esEdicion;
   delete p.id;
+  delete p.galeriaPreview;
 
   try {
+    let urlsFinales = [];
+
+    // Subir archivos reales a Cloudinary
+    if (archivosSeleccionados && archivosSeleccionados.length > 0) {
+      for (let i = 0; i < archivosSeleccionados.length; i++) {
+        btnConfirmar.textContent = `Subiendo archivo ${i + 1} de ${archivosSeleccionados.length}...`;
+        const urlSubida = await subirACloudinary(archivosSeleccionados[i]);
+        urlsFinales.push(urlSubida);
+      }
+    } else if (esEdicion && idDoc) {
+      const propExistente = PROPIEDADES.find(item => String(item.id) === String(idDoc));
+      if (propExistente) {
+        urlsFinales = propExistente.galeria;
+      }
+    }
+
+    p.galeria = urlsFinales;
+
+    btnConfirmar.textContent = "Guardando en la base de datos...";
+
     if (esEdicion && idDoc) {
       await db.collection("propiedades").doc(String(idDoc)).set(p, { merge: true });
     } else {
@@ -334,11 +351,12 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
 
     cerrarCualquierModal();
     propiedadEnBorrador = null;
+    archivosSeleccionados = [];
     $("#form-publicar").reset();
-    alert("¡Publicación guardada exitosamente en la nube!");
+    alert("¡Publicación guardada exitosamente! Ya es visible desde cualquier celular o computadora con fotos y videos.");
   } catch (err) {
-    console.error("Error al escribir en Firestore:", err);
-    alert("Error de Firebase: " + err.message);
+    console.error("Error al publicar:", err);
+    alert("Error al subir a Cloudinary / Firebase: " + err.message);
   } finally {
     btnConfirmar.disabled = false;
     btnConfirmar.textContent = "Confirmar y Publicar";
@@ -369,7 +387,7 @@ async function eliminarPropiedad(id) {
 }
 
 // ==========================================
-// 8. CARRUSEL
+// 8. MOTOR DE CARRUSEL CON SOPORTE DE VIDEO
 // ==========================================
 function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
   if (!galeria || galeria.length === 0) {
@@ -378,9 +396,23 @@ function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
 
   const slides = galeria.map((url, index) => {
     const esPrimerSlide = index === 0 ? "activo" : "";
+    const esVideo = esUrlDeVideo(url);
+
+    if (esVideo) {
+      return `
+        <div class="carrusel-slide ${esPrimerSlide}" data-slide="${index}">
+          <video class="carrusel-media" ${esModal ? 'controls playsinline' : 'muted loop autoplay playsinline'}>
+            <source src="${url}">
+            Tu dispositivo no puede reproducir este video.
+          </video>
+          ${!esModal ? '<span class="badge-multimedia">▶ Video</span>' : ''}
+        </div>
+      `;
+    }
+
     return `
       <div class="carrusel-slide ${esPrimerSlide}" data-slide="${index}">
-        <img src="${url}" class="carrusel-media" alt="Inmueble">
+        <img src="${url}" class="carrusel-media" alt="Propiedad">
       </div>
     `;
   }).join("");
@@ -406,6 +438,9 @@ function cambiarSlide(carruselEl, direccion) {
   let indiceActual = Array.from(slides).findIndex(s => s.classList.contains("activo"));
   if (indiceActual === -1) indiceActual = 0;
 
+  const videoActual = slides[indiceActual].querySelector("video");
+  if (videoActual) videoActual.pause();
+
   slides[indiceActual].classList.remove("activo");
 
   let nuevoIndice = indiceActual + direccion;
@@ -413,6 +448,11 @@ function cambiarSlide(carruselEl, direccion) {
   if (nuevoIndice < 0) nuevoIndice = slides.length - 1;
 
   slides[nuevoIndice].classList.add("activo");
+
+  const videoNuevo = slides[nuevoIndice].querySelector("video");
+  if (videoNuevo && !videoNuevo.hasAttribute("controls")) {
+    videoNuevo.play().catch(() => {});
+  }
 
   const contador = carruselEl.querySelector(".carrusel-contador");
   if (contador) {
@@ -487,6 +527,7 @@ function renderizarCatalogo(lista) {
   }).join("");
 }
 
+// Clic en tarjetas
 $("#grilla-propiedades").addEventListener("click", (e) => {
   if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) return;
 
