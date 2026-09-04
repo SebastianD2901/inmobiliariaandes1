@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Los Andes Propiedades | Plataforma Inmobiliaria</title>
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=12">
 
   <!-- SDKs de Firebase (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -25,6 +25,7 @@
       <nav class="nav" id="nav-principal">
         <a href="#inicio" class="nav__enlace activo" data-navegar="inicio">Inicio</a>
         <a href="#propiedades" class="nav__enlace" data-navegar="propiedades">Propiedades</a>
+        <a href="#mis-propiedades" class="nav__enlace" id="nav-mis-propiedades" data-navegar="mis-propiedades" hidden>Mis Inmuebles</a>
         <a href="#simulador" class="nav__enlace" data-navegar="simulador">Simulador</a>
         <a href="#contacto" class="nav__enlace" data-navegar="contacto">Asesoría</a>
       </nav>
@@ -52,7 +53,7 @@
           <div class="circulo-luz luz-2"></div>
         </div>
         <div class="contenedor hero-impacto__inner">
-          <div class="hero-badge">Los andes · Ecuador</div>
+          <div class="hero-badge">Los Andes · Ecuador</div>
           <h1 class="hero-impacto__titulo">
             Conectamos hogares <span class="texto-gradiente">sin comisiones abusivas</span>.
           </h1>
@@ -62,14 +63,13 @@
           
           <div class="hero-impacto__botones">
             <button type="button" class="btn btn--cta-grande pulse-glow" id="btn-hero-publicar">
-              <span> Empezar a Publicar Ahora</span>
+              <span>Empezar a Publicar Ahora</span>
             </button>
             <button type="button" class="btn btn--secundario btn--lg" data-navegar="propiedades">
               Ver Inmuebles Disponibles →
             </button>
           </div>
 
-          <!-- Tarjetas de propósito -->
           <div class="proposito-grid">
             <div class="proposito-card" data-navegar="propiedades">
               <div class="proposito-card__icono">🏠</div>
@@ -92,7 +92,7 @@
     </section>
 
     <!-- ==========================================
-         VISTA 2: CATÁLOGO DE PROPIEDADES
+         VISTA 2: CATÁLOGO GENERAL DE PROPIEDADES
          ========================================== -->
     <section class="vista" id="vista-propiedades">
       <div class="contenedor vista-contenedor">
@@ -170,7 +170,24 @@
     </section>
 
     <!-- ==========================================
-         VISTA 3: SIMULADOR HIPOTECARIO
+         VISTA 3: MIS PROPIEDADES (GESTIÓN EXCLUSIVA)
+         ========================================== -->
+    <section class="vista" id="vista-mis-propiedades">
+      <div class="contenedor vista-contenedor">
+        <header class="vista-head vista-head--flex">
+          <div>
+            <h2 class="vista-titulo">Mis Inmuebles Publicados</h2>
+            <p class="vista-sub">Gestiona el estado, modifica o retira las propiedades de tu cuenta.</p>
+          </div>
+          <button type="button" class="btn btn--primario btn--sm" id="btn-mis-publicar">+ Publicar Otro Inmueble</button>
+        </header>
+
+        <div class="grilla" id="grilla-mis-propiedades"></div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VISTA 4: SIMULADOR HIPOTECARIO
          ========================================== -->
     <section class="vista" id="vista-simulador">
       <div class="contenedor vista-contenedor">
@@ -213,7 +230,7 @@
     </section>
 
     <!-- ==========================================
-         VISTA 4: CONTACTO & ASESORÍA
+         VISTA 5: CONTACTO & ASESORÍA
          ========================================== -->
     <section class="vista" id="vista-contacto">
       <div class="contenedor vista-contenedor">
@@ -258,7 +275,7 @@
             </details>
             <details class="faq-card">
               <summary>¿Cómo edito o elimino mi anuncio?</summary>
-              <p>Inicia sesión con la misma cuenta de Google que usaste para publicar y verás el botón "Gestionar" en tu anuncio.</p>
+              <p>Inicia sesión con tu cuenta de Google y dirígete al menú "Mis Inmuebles". Allí podrás editar, marcar como vendido o eliminar.</p>
             </details>
             <details class="faq-card">
               <summary>¿Dónde se almacenan los videos e imágenes?</summary>
@@ -280,6 +297,10 @@
       <span class="barra-icono">🏢</span>
       <span>Inmuebles</span>
     </button>
+    <button type="button" class="barra-movil__item" id="barra-mis-propiedades" data-navegar="mis-propiedades" hidden>
+      <span class="barra-icono">📂</span>
+      <span>Mis Casas</span>
+    </button>
     <button type="button" class="barra-movil__item" data-navegar="simulador">
       <span class="barra-icono">📊</span>
       <span>Simulador</span>
@@ -290,7 +311,7 @@
     </button>
   </nav>
 
-  <!-- ============ MODAL DE DETALLE DE PROPIEDAD ============ -->
+  <!-- ============ MODAL DE DETALLE ============ -->
   <div class="modal" id="modal" hidden>
     <div class="modal__fondo" data-cerrar="modal"></div>
     <div class="modal__caja modal__caja--detalle">
@@ -299,13 +320,25 @@
     </div>
   </div>
 
-  <!-- ============ MODAL PREVIEW ============ -->
+  <!-- ============ MODAL PREVIEW (CON DRAG & DROP PARA REORDENAR) ============ -->
   <div class="modal" id="modal-preview" hidden>
     <div class="modal__fondo" data-cerrar="modal-preview"></div>
-    <div class="modal__caja">
+    <div class="modal__caja modal__caja--detalle">
       <button class="modal__cerrar" type="button" data-cerrar="modal-preview">&times;</button>
-      <div class="preview-barra"><span>👁️ Vista Previa de tu Anuncio</span></div>
+      <div class="preview-barra">
+        <span>👁️ Vista Previa: Revisa y ajusta antes de publicar</span>
+      </div>
+      
+      <!-- Organizador visual para arrastrar y soltar fotos -->
+      <div class="preview-reordenador">
+        <p class="preview-reordenador__guia">
+          🖐️ <strong>Organiza tu galería:</strong> Mantén presionado y arrastra cualquier foto o video para cambiar el orden de portada.
+        </p>
+        <div class="reordenador-grid" id="reordenador-fotos"></div>
+      </div>
+
       <div class="modal__contenido" id="preview-contenido"></div>
+
       <div class="preview-acciones">
         <button type="button" class="btn btn--secundario" id="btn-preview-volver">← Modificar Datos</button>
         <button type="button" class="btn btn--primario" id="btn-preview-confirmar">Confirmar y Publicar</button>
@@ -335,7 +368,7 @@
     </div>
   </div>
 
-  <!-- ============ MODAL PUBLICAR (SIN AÑO) ============ -->
+  <!-- ============ MODAL PUBLICAR ============ -->
   <div class="modal" id="modal-publicar" hidden>
     <div class="modal__fondo" data-cerrar="modal-publicar"></div>
     <div class="modal__caja pub-caja">
@@ -382,6 +415,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=9"></script>
+  <script src="script.js?v=12"></script>
 </body>
 </html>

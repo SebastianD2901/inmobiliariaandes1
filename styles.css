@@ -120,6 +120,14 @@ a {
   margin-bottom: var(--sp-3); 
 }
 
+.vista-head--flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .vista-titulo { 
   font-size: clamp(1.8rem, 3.5vw, 2.5rem); 
   font-weight: 800; 
@@ -181,8 +189,8 @@ a {
 }
 
 .nav__enlace.activo { 
-  color: #ffffff; 
-  background: var(--c-marca); 
+  color: #ffffff !important; 
+  background: var(--c-marca) !important; 
 }
 
 .header__acciones { 
@@ -645,6 +653,16 @@ a {
   color: #ffffff; 
 }
 
+/* Panel específico para tarjetas de mis propiedades */
+.tarjeta__acciones-propietario {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  padding: .85rem 1.2rem;
+  background: var(--c-superficie-2);
+  border-top: 1px solid var(--c-borde);
+}
+
 /* =========================================================
    CARRUSEL & MULTIMEDIA
    ========================================================= */
@@ -802,6 +820,77 @@ a {
 .tarjeta__detalles strong { 
   color: var(--c-texto); 
   font-size: .9rem; 
+}
+
+/* =========================================================
+   REORDENADOR INTERACTIVO DRAG & DROP
+   ========================================================= */
+.preview-reordenador {
+  padding: 1.2rem 1.5rem;
+  background: var(--c-superficie-2);
+  border-bottom: 1px solid var(--c-borde);
+}
+
+.preview-reordenador__guia {
+  font-size: .86rem;
+  color: var(--c-texto);
+  margin-bottom: .8rem;
+}
+
+.reordenador-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: .75rem;
+  min-height: 80px;
+}
+
+.reordenador-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--c-borde);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  background: #000;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.reordenador-item:active {
+  cursor: grabbing;
+}
+
+.reordenador-item.arrastrando {
+  opacity: 0.35;
+  transform: scale(0.92);
+  border-color: var(--c-marca);
+}
+
+.reordenador-item.sobre {
+  border-color: var(--c-acento);
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.reordenador-item img,
+.reordenador-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.reordenador-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
 }
 
 /* =========================================================
@@ -1150,9 +1239,7 @@ a {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-/* =========================================================
-   FORMULARIO DE PUBLICACIÓN CALIBRADO
-   ========================================================= */
+/* Formulario modal de publicación */
 .pub-caja {
   width: min(100%, 780px);
   padding: 2.2rem;
@@ -1295,11 +1382,11 @@ a {
     font-weight: 600;
     color: var(--c-texto-suave); 
     cursor: pointer; 
-    padding: 6px 12px;
+    padding: 6px 10px;
   }
 
   .barra-movil__item.activo { 
-    color: var(--c-marca); 
+    color: var(--c-marca) !important; 
   }
 
   .barra-icono { 
