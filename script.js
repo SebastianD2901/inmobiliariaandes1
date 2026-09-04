@@ -1,5 +1,5 @@
 /* =========================================================
-   Andina Propiedades — Código Completo con Cloudinary & Firestore
+   Andina Propiedades — SPA Routing & Cloudinary Integration
    ========================================================= */
 
 const CLOUDINARY_CLOUD_NAME = "ipe9us2o"; 
@@ -33,7 +33,63 @@ const PROPIEDAD_DEMO = {
 };
 
 // ==========================================
-// 1. CONFIGURACIÓN FIREBASE
+// 1. SISTEMA DE RUTAS (SPA NAVIGATION)
+// ==========================================
+function cambiarVista(vistaId) {
+  // Ocultar todas las vistas
+  document.querySelectorAll(".vista").forEach(v => {
+    v.classList.remove("vista--activa");
+  });
+
+  // Mostrar la vista requerida
+  const vistaDestino = document.getElementById(`vista-${vistaId}`);
+  if (vistaDestino) {
+    vistaDestino.classList.add("vista--activa");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Sincronizar clases activas en Navbar Desktop
+  document.querySelectorAll(".nav__enlace").forEach(enlace => {
+    enlace.classList.toggle("activo", enlace.dataset.navegar === vistaId);
+  });
+
+  // Sincronizar clases activas en Barra Móvil
+  document.querySelectorAll(".barra-movil__item").forEach(item => {
+    item.classList.toggle("activo", item.dataset.navegar === vistaId);
+  });
+}
+
+// Delegación de clics para enlaces de navegación
+document.addEventListener("click", (e) => {
+  const targetNavegar = e.target.closest("[data-navegar]");
+  if (targetNavegar) {
+    e.preventDefault();
+    const vista = targetNavegar.dataset.navegar;
+    cambiarVista(vista);
+    history.pushState(null, null, `#${vista}`);
+  }
+});
+
+// Detectar cambio de hash en URL
+window.addEventListener("popstate", () => {
+  const hash = window.location.hash.replace("#", "") || "inicio";
+  cambiarVista(hash);
+});
+
+// Botón grande del Hero para publicar
+$("#btn-hero-publicar").addEventListener("click", () => {
+  if (usuarioActual) {
+    prepararFormularioPublicacion(null);
+    $("#modal-publicar").hidden = false;
+    document.body.classList.add("sin-scroll");
+  } else {
+    $("#modal-auth").hidden = false;
+    document.body.classList.add("sin-scroll");
+  }
+});
+
+// ==========================================
+// 2. CONFIGURACIÓN FIREBASE
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyDLlfRoXdcr92D6jIxBZ3ZyXwb2s0Qql6Y",
@@ -58,7 +114,7 @@ let propiedadEnBorrador = null;
 let archivosSeleccionados = [];
 
 // ==========================================
-// 2. ESCUCHA ACTIVA DE FIRESTORE
+// 3. ESCUCHA FIRESTORE EN TIEMPO REAL
 // ==========================================
 db.collection("propiedades").onSnapshot(
   (snapshot) => {
@@ -74,12 +130,12 @@ db.collection("propiedades").onSnapshot(
     renderizarCatalogo(PROPIEDADES);
   },
   (err) => {
-    console.error("Fallo al sincronizar con Firestore:", err);
+    console.error("Fallo al conectar con Firestore:", err);
   }
 );
 
 // ==========================================
-// 3. DETECTOR DE MULTIMEDIA Y CLOUDINARY
+// 4. DETECCIÓN MULTIMEDIA Y CLOUDINARY
 // ==========================================
 function obtenerStringUrl(item) {
   if (!item) return "";
@@ -117,7 +173,7 @@ async function subirACloudinary(file) {
 
   if (!res.ok) {
     const errorData = await res.json();
-    throw new Error(errorData.error ? errorData.error.message : "Error al subir archivo");
+    throw new Error(errorData.error ? errorData.error.message : "Error al subir a Cloudinary");
   }
 
   const data = await res.json();
@@ -125,7 +181,7 @@ async function subirACloudinary(file) {
 }
 
 // ==========================================
-// 4. AUTENTICACIÓN GOOGLE
+// 5. AUTENTICACIÓN GOOGLE
 // ==========================================
 auth.onAuthStateChanged(user => {
   usuarioActual = user;
@@ -157,7 +213,7 @@ $("#btn-google").addEventListener("click", () => {
 });
 
 // ==========================================
-// 5. GESTIÓN DE MODALES
+// 6. GESTIÓN DE MODALES
 // ==========================================
 function cerrarCualquierModal() {
   document.querySelectorAll(".modal").forEach(m => {
@@ -182,7 +238,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ==========================================
-// 6. FORMULARIO, PREVIEW Y PUBLICACIÓN
+// 7. FORMULARIO, PREVIEW Y PUBLICACIÓN
 // ==========================================
 $("#btn-publicar").addEventListener("click", () => {
   prepararFormularioPublicacion(null);
@@ -219,15 +275,15 @@ function prepararFormularioPublicacion(propiedadAEditar) {
     $("#pub-caract").value = (propiedadAEditar.caracteristicas || []).join(", ");
   } else {
     $("#pub-modal-titulo").textContent = "Publicar Inmueble";
-    $("#pub-modal-sub").textContent = "Completa los datos de tu propiedad para el catálogo.";
+    $("#pub-modal-sub").textContent = "Tu anuncio estará disponible para todos los compradores.";
     $("#btn-submit-pub").textContent = "Previsualizar publicación";
     $("#pub-id-editar").value = "";
     $("#pub-fotos").required = true;
-    $("#lbl-fotos").textContent = "Fotos y Videos *";
+    $("#lbl-fotos").textContent = "Fotos y Videos (Archivos multimedia) *";
   }
 }
 
-// Paso 1: Vista previa
+// Previsualizar
 $("#form-publicar").addEventListener("submit", (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -318,7 +374,7 @@ $("#btn-preview-volver").addEventListener("click", (e) => {
   $("#modal-publicar").hidden = false;
 });
 
-// Paso 2: Subir a Cloudinary y guardar en Firestore
+// Guardar en Cloudinary y Firestore
 $("#btn-preview-confirmar").addEventListener("click", async (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -366,6 +422,9 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
     archivosSeleccionados = [];
     $("#form-publicar").reset();
     alert("¡Publicación guardada exitosamente! Ya es visible desde cualquier celular o computadora.");
+    
+    // Llevar automáticamente a la sección de propiedades para verla
+    cambiarVista("propiedades");
   } catch (err) {
     console.error("Error al publicar:", err);
     alert("Error al subir archivo: " + err.message);
@@ -376,7 +435,7 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
 });
 
 // ==========================================
-// 7. GESTIÓN: ESTADO Y ELIMINACIÓN
+// 8. GESTIÓN: ESTADO Y ELIMINACIÓN
 // ==========================================
 async function cambiarEstadoPropiedad(id, nuevoEstado) {
   try {
@@ -399,7 +458,7 @@ async function eliminarPropiedad(id) {
 }
 
 // ==========================================
-// 8. MOTOR DE CARRUSEL
+// 9. MOTOR DE CARRUSEL
 // ==========================================
 function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
   if (!galeria || galeria.length === 0) {
@@ -485,7 +544,7 @@ document.addEventListener("click", (e) => {
 });
 
 // ==========================================
-// 9. RENDERIZADO DEL CATÁLOGO
+// 10. RENDERIZADO DEL CATÁLOGO
 // ==========================================
 function renderizarCatalogo(lista) {
   const grilla = $("#grilla-propiedades");
@@ -650,7 +709,7 @@ function abrirModalDetalle(p) {
 }
 
 // ==========================================
-// 10. SIMULADOR HIPOTECARIO
+// 11. SIMULADOR HIPOTECARIO
 // ==========================================
 function calcularSimulador() {
   const monto = Number($("#sim-monto").value) || 0;
@@ -679,7 +738,7 @@ $("#form-simulador").addEventListener("submit", (e) => {
 });
 
 // ==========================================
-// 11. BUSCADOR Y TEMA
+// 12. BUSCADOR Y TEMA
 // ==========================================
 $("#f-precio").addEventListener("input", (e) => {
   $("#salida-precio").value = money(Number(e.target.value));
@@ -713,4 +772,7 @@ $("#btn-tema").addEventListener("click", () => {
   document.documentElement.setAttribute("data-theme", actual === "dark" ? "light" : "dark");
 });
 
+// Inicialización de la SPA
+const rutaInicial = window.location.hash.replace("#", "") || "inicio";
+cambiarVista(rutaInicial);
 calcularSimulador();

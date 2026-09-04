@@ -3,35 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Andina Propiedades | Venta y alquiler de inmuebles</title>
+  <title>Los Andes Propiedades | Plataforma Inmobiliaria</title>
   <link rel="stylesheet" href="styles.css">
 
-  <!-- SDKs de Firebase (Versión 10.8.1 Compat) -->
+  <!-- SDKs de Firebase (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
 </head>
 <body>
 
-  <!-- ============ ENCABEZADO ============ -->
-  <header class="header" id="inicio">
+  <!-- ============ ENCABEZADO Y NAVEGACIÓN ============ -->
+  <header class="header">
     <div class="contenedor header__inner">
-      <a href="#inicio" class="logo">
+      <a href="#inicio" class="logo" data-navegar="inicio">
         <svg class="logo__icono" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 16 16 5l12 11v11a2 2 0 0 1-2 2h-7v-8h-6v8H6a2 2 0 0 1-2-2z" fill="currentColor"/></svg>
         <span class="logo__texto">Los<strong>Andes</strong></span>
       </a>
 
+      <!-- Menú Desktop y Móvil -->
       <nav class="nav" id="nav-principal">
-        <a href="#inicio" class="nav__enlace">Inicio</a>
-        <a href="#propiedades" class="nav__enlace">Propiedades</a>
-        <a href="#simulador" class="nav__enlace">Simulador</a>
-        <a href="#contacto" class="nav__enlace">Contacto</a>
+        <a href="#inicio" class="nav__enlace activo" data-navegar="inicio">Inicio</a>
+        <a href="#propiedades" class="nav__enlace" data-navegar="propiedades">Propiedades</a>
+        <a href="#simulador" class="nav__enlace" data-navegar="simulador">Simulador</a>
+        <a href="#contacto" class="nav__enlace" data-navegar="contacto">Asesoría</a>
       </nav>
 
       <div class="header__acciones">
-        <button class="btn btn--primario btn--sm" id="btn-login-modal">Publicar propiedad</button>
-        <button class="btn btn--secundario btn--sm" id="btn-publicar" hidden>+ Publicar Inmueble</button>
+        <button class="btn btn--primario btn--sm" id="btn-login-modal">Ingresar</button>
+        <button class="btn btn--secundario btn--sm" id="btn-publicar" hidden>+ Publicar</button>
         <button class="btn btn--texto btn--sm" id="btn-logout" hidden>Salir</button>
         
         <button class="icono-btn" id="btn-tema" type="button" aria-label="Cambiar tema">
@@ -42,139 +42,230 @@
   </header>
 
   <main>
-    <!-- HERO Y BUSCADOR -->
-    <section class="hero">
-      <div class="contenedor hero__inner">
-        <p class="hero__kicker">Riobamba · Chimborazo · Ecuador</p>
-        <h1 class="hero__titulo">La casa correcta, en el sector correcto, al precio correcto.</h1>
+    <!-- ==========================================
+         VISTA 1: INICIO (PROPOSITO Y ACCIONES)
+         ========================================== -->
+    <section class="vista vista--activa" id="vista-inicio">
+      <div class="hero-impacto">
+        <div class="hero-impacto__fondos">
+          <div class="circulo-luz luz-1"></div>
+          <div class="circulo-luz luz-2"></div>
+        </div>
+        <div class="contenedor hero-impacto__inner">
+          <div class="hero-badge">Revolución Inmobiliaria · Ecuador</div>
+          <h1 class="hero-impacto__titulo">
+            Conectamos hogares y sueños <span class="texto-gradiente">sin comisiones abusivas</span>.
+          </h1>
+          <p class="hero-impacto__descripcion">
+            La plataforma abierta y transparente para comprar, vender o arrendar inmuebles en Riobamba y todo el Ecuador. Publicación gratuita directa de propietario a interesado.
+          </p>
+          
+          <div class="hero-impacto__botones">
+            <button type="button" class="btn btn--cta-grande pulse-glow" id="btn-hero-publicar">
+              <span>🚀 Empezar a Publicar Ahora</span>
+            </button>
+            <button type="button" class="btn btn--secundario btn--lg" data-navegar="propiedades">
+              Ver Inmuebles Disponibles →
+            </button>
+          </div>
+
+          <!-- Tarjetas interactivas de propósito -->
+          <div class="proposito-grid">
+            <div class="proposito-card" data-navegar="propiedades">
+              <div class="proposito-card__icono">🏠</div>
+              <h3>Trato Directo</h3>
+              <p>Habla directamente con propietarios por WhatsApp. Sin intermediarios ni trabas.</p>
+            </div>
+            <div class="proposito-card" data-navegar="simulador">
+              <div class="proposito-card__icono">📊</div>
+              <h3>Simula tu Crédito</h3>
+              <p>Calcula tus cuotas con tasas reales aplicadas en el mercado ecuatoriano.</p>
+            </div>
+            <div class="proposito-card" data-navegar="contacto">
+              <div class="proposito-card__icono">🤝</div>
+              <h3>Asesoría Inmobiliaria</h3>
+              <p>Te guiamos en avalúos, trámites legales y verificación de escrituras.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VISTA 2: CATÁLOGO DE PROPIEDADES
+         ========================================== -->
+    <section class="vista" id="vista-propiedades">
+      <div class="contenedor vista-contenedor">
+        <header class="vista-head">
+          <div>
+            <h2 class="vista-titulo">Catálogo Inmobiliario</h2>
+            <p class="vista-sub">Explora propiedades actualizadas con fotos, videos y mapas.</p>
+          </div>
+        </header>
+
+        <!-- Buscador integrado en vista de propiedades -->
         <form class="buscador" id="form-busqueda">
           <div class="campo"><label>Operación</label><select id="f-operacion"><option value="">Todas</option><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
           <div class="campo"><label>Tipo</label><select id="f-tipo"><option value="">Todos</option><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="terreno">Terreno</option><option value="local">Local</option></select></div>
           <div class="campo"><label>Palabra clave</label><input type="search" id="f-texto" placeholder="Ej. suite, jardín, centro"></div>
           <div class="campo"><label>Precio máximo: <output id="salida-precio">$400.000</output></label><input type="range" id="f-precio" min="500" max="400000" step="500" value="400000"></div>
-          <button type="submit" class="btn btn--primario btn--buscar">Buscar</button>
+          <button type="submit" class="btn btn--primario btn--buscar">Filtrar</button>
         </form>
-      </div>
-    </section>
 
-    <!-- CATÁLOGO -->
-    <section class="seccion" id="propiedades">
-      <div class="contenedor">
-        <header class="seccion__head">
-          <div>
-            <h2 class="seccion__titulo">Propiedades disponibles</h2>
-            <p class="seccion__sub">Sincronizadas en la nube para todos los dispositivos.</p>
-          </div>
-        </header>
         <div class="grilla" id="grilla-propiedades"></div>
       </div>
     </section>
 
-    <!-- SIMULADOR -->
-    <section class="seccion seccion--alt" id="simulador">
-      <div class="contenedor">
-        <header class="seccion__head">
+    <!-- ==========================================
+         VISTA 3: SIMULADOR HIPOTECARIO
+         ========================================== -->
+    <section class="vista" id="vista-simulador">
+      <div class="contenedor vista-contenedor">
+        <header class="vista-head">
           <div>
-            <h2 class="seccion__titulo">Simulador de Crédito Hipotecario</h2>
-            <p class="seccion__sub">Estima tu cuota mensual referencial en Ecuador.</p>
+            <h2 class="vista-titulo">Simulador Financiero de Vivienda</h2>
+            <p class="vista-sub">Conoce tu cuota aproximada según los plazos y tasas habituales de Ecuador.</p>
           </div>
         </header>
+
         <div class="simulador-grid">
           <form id="form-simulador" class="simulador-form">
-            <div class="campo"><label for="sim-monto">Monto del Préstamo (USD)</label><input type="number" id="sim-monto" value="70000" min="1000" step="1000" required></div>
+            <div class="campo"><label for="sim-monto">Monto Solicitado (USD)</label><input type="number" id="sim-monto" value="70000" min="1000" step="1000" required></div>
             <div class="campo">
               <label for="sim-plazo">Plazo de Pago (Años)</label>
               <select id="sim-plazo">
-                <option value="5">5 años</option>
-                <option value="10">10 años</option>
-                <option value="15">15 años</option>
-                <option value="20" selected>20 años</option>
-                <option value="25">25 años</option>
+                <option value="5">5 años (60 cuotas)</option>
+                <option value="10">10 años (120 cuotas)</option>
+                <option value="15">15 años (180 cuotas)</option>
+                <option value="20" selected>20 años (240 cuotas)</option>
+                <option value="25">25 años (300 cuotas)</option>
               </select>
             </div>
-            <div class="campo"><label for="sim-tasa">Tasa Anual (%)</label><input type="number" id="sim-tasa" value="8.50" min="1" max="25" step="0.05" required></div>
+            <div class="campo"><label for="sim-tasa">Tasa de Interés Anual (%)</label><input type="number" id="sim-tasa" value="8.50" min="1" max="25" step="0.05" required></div>
             <button type="submit" class="btn btn--primario btn--full">Calcular Cuota</button>
           </form>
 
           <div class="simulador-resultado" id="sim-resultado">
-            <span class="badge-tipo">Sistema Francés</span>
-            <p class="sim-resultado__etiqueta">Cuota mensual estimada:</p>
+            <span class="badge-tipo">Sistema Francés (Cuota Fija)</span>
+            <p class="sim-resultado__etiqueta">Cuota mensual calculada:</p>
             <p class="sim-resultado__monto" id="res-cuota">$607,39</p>
             <ul class="sim-resultado__detalles">
               <li>Monto solicitado: <strong id="res-monto">$70.000</strong></li>
               <li>Plazo: <strong id="res-plazo">20 años</strong></li>
-              <li>Total estimado: <strong id="res-total">$145.773</strong></li>
+              <li>Total proyectado: <strong id="res-total">$145.773</strong></li>
             </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VISTA 4: CONTACTO & ASESORÍA
+         ========================================== -->
+    <section class="vista" id="vista-contacto">
+      <div class="contenedor vista-contenedor">
+        <header class="vista-head">
+          <div>
+            <h2 class="vista-titulo">Contacto & Asesoría Integral</h2>
+            <p class="vista-sub">Estamos listos para orientarte en cualquier duda o gestión.</p>
+          </div>
+        </header>
+
+        <div class="contacto-layout">
+          <div class="contacto-info">
+            <h3>¿Cómo te podemos ayudar?</h3>
+            <p>Nuestro equipo en Riobamba ofrece orientación en avalúos comerciales, verificación de gravámenes y contratos de compraventa.</p>
+            
+            <div class="contacto-item">
+              <span class="contacto-item__icono">📍</span>
+              <div>
+                <strong>Oficina Principal</strong>
+                <p>Riobamba, Chimborazo, Ecuador</p>
+              </div>
+            </div>
+
+            <div class="contacto-item">
+              <span class="contacto-item__icono">💬</span>
+              <div>
+                <strong>Atención WhatsApp</strong>
+                <p>Respuestas inmediatas en horario comercial</p>
+              </div>
+            </div>
+
+            <a href="https://wa.me/593987654321?text=Hola%20deseo%20asesoria%20inmobiliaria" target="_blank" rel="noopener" class="btn btn--wa btn--full">
+              Escribir al WhatsApp de Soporte
+            </a>
+          </div>
+
+          <div class="contacto-faq">
+            <h3>Preguntas Frecuentes</h3>
+            <details class="faq-card" open>
+              <summary>¿Cuánto cuesta publicar una propiedad?</summary>
+              <p>Es 100% gratuito. No cobramos comisiones de intermediación ni tarifas por mantener tu anuncio visible.</p>
+            </details>
+            <details class="faq-card">
+              <summary>¿Cómo edito o elimino mi anuncio?</summary>
+              <p>Inicia sesión con la misma cuenta de Google que usaste para publicar y verás el botón "Gestionar" en tu anuncio.</p>
+            </details>
+            <details class="faq-card">
+              <summary>¿Dónde se almacenan los videos e imágenes?</summary>
+              <p>Se procesan a través de servidores en la nube para que carguen de inmediato sin lentitud en teléfonos móviles.</p>
+            </details>
           </div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- FOOTER -->
-  <footer class="footer" id="contacto">
-    <div class="contenedor footer__inner">
-      <div class="footer__col">
-        <a href="#inicio" class="logo">
-          <svg class="logo__icono" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 16 16 5l12 11v11a2 2 0 0 1-2 2h-7v-8h-6v8H6a2 2 0 0 1-2-2z" fill="currentColor"/></svg>
-          <span class="logo__texto">Los<strong>Andes</strong></span>
-        </a>
-        <p class="footer__texto">Plataforma abierta para la publicación y búsqueda de bienes raíces en Riobamba y todo el Ecuador.</p>
-      </div>
+  <!-- NAVEGACIÓN INFERIOR PARA MÓVILES (Estilo App) -->
+  <nav class="barra-movil">
+    <button type="button" class="barra-movil__item activo" data-navegar="inicio">
+      <span class="barra-icono">🏠</span>
+      <span>Inicio</span>
+    </button>
+    <button type="button" class="barra-movil__item" data-navegar="propiedades">
+      <span class="barra-icono">🏢</span>
+      <span>Inmuebles</span>
+    </button>
+    <button type="button" class="barra-movil__item" data-navegar="simulador">
+      <span class="barra-icono">📊</span>
+      <span>Simulador</span>
+    </button>
+    <button type="button" class="barra-movil__item" data-navegar="contacto">
+      <span class="barra-icono">🤝</span>
+      <span>Asesoría</span>
+    </button>
+  </nav>
 
-      <div class="footer__col">
-        <h4 class="footer__titulo">Soporte y Atención</h4>
-        <p class="footer__texto">¿Dudas o problemas al publicar?</p>
-        <a href="https://wa.me/593987654321?text=Hola%20necesito%20soporte" target="_blank" rel="noopener" class="btn btn--wa btn--sm">WhatsApp de Soporte</a>
-      </div>
-
-      <div class="footer__col">
-        <h4 class="footer__titulo">Síguenos</h4>
-        <div class="footer__redes">
-          <a href="https://instagram.com" target="_blank" rel="noopener" class="red-enlace" aria-label="Instagram">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-          </a>
-          <a href="https://facebook.com" target="_blank" rel="noopener" class="red-enlace" aria-label="Facebook">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-          </a>
-          <a href="https://tiktok.com" target="_blank" rel="noopener" class="red-enlace" aria-label="TikTok">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 1 1-5.2-1.74 2.89 2.89 0 0 1 2.31-1.38V8.92a6.34 6.34 0 1 0 6.34 6.34V8.45a8.28 8.28 0 0 0 4.77 1.48V6.69z"/></svg>
-          </a>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <!-- MODAL DETALLE -->
+  <!-- ============ MODALES ============ -->
   <div class="modal" id="modal" hidden>
     <div class="modal__fondo" data-cerrar="modal"></div>
-      <button class="modal__cerrar" type="button" data-cerrar="modal" aria-label="Cerrar modal">&times;</button>
+    <div class="modal__caja">
+      <button class="modal__cerrar" type="button" data-cerrar="modal">&times;</button>
       <div class="modal__contenido" id="modal-contenido"></div>
     </div>
   </div>
 
-  <!-- MODAL PREVIEW -->
   <div class="modal" id="modal-preview" hidden>
     <div class="modal__fondo" data-cerrar="modal-preview"></div>
     <div class="modal__caja">
-      <button class="modal__cerrar" type="button" data-cerrar="modal-preview" aria-label="Cerrar modal">&times;</button>
-      <div class="preview-barra"><span>👁️ Vista Previa: Así se verá tu publicación</span></div>
+      <button class="modal__cerrar" type="button" data-cerrar="modal-preview">&times;</button>
+      <div class="preview-barra"><span>👁️ Vista Previa de tu Anuncio</span></div>
       <div class="modal__contenido" id="preview-contenido"></div>
       <div class="preview-acciones">
-        <button type="button" class="btn btn--secundario" id="btn-preview-volver">← Regresar y Modificar</button>
+        <button type="button" class="btn btn--secundario" id="btn-preview-volver">← Modificar Datos</button>
         <button type="button" class="btn btn--primario" id="btn-preview-confirmar">Confirmar y Publicar</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL AUTH -->
   <div class="modal" id="modal-auth" hidden>
     <div class="modal__fondo" data-cerrar="modal-auth"></div>
     <div class="modal__caja auth-caja">
-      <button class="modal__cerrar" type="button" data-cerrar="modal-auth" aria-label="Cerrar modal">&times;</button>
+      <button class="modal__cerrar" type="button" data-cerrar="modal-auth">&times;</button>
       <div class="auth-header">
         <h2>Acceso Propietarios</h2>
-        <p class="seccion__sub">Inicia sesión con tu cuenta de Google para publicar.</p>
+        <p class="seccion__sub">Inicia sesión con Google para publicar y gestionar inmuebles.</p>
       </div>
       <button id="btn-google" class="btn-google" type="button">
         <svg class="google-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -189,51 +280,38 @@
     </div>
   </div>
 
-  <!-- MODAL PUBLICAR -->
   <div class="modal" id="modal-publicar" hidden>
     <div class="modal__fondo" data-cerrar="modal-publicar"></div>
     <div class="modal__caja pub-caja">
-      <button class="modal__cerrar" type="button" data-cerrar="modal-publicar" aria-label="Cerrar modal">&times;</button>
+      <button class="modal__cerrar" type="button" data-cerrar="modal-publicar">&times;</button>
       <h2 id="pub-modal-titulo">Publicar Inmueble</h2>
-      <p class="seccion__sub" id="pub-modal-sub">Completa los datos de tu propiedad para el catálogo global.</p>
+      <p class="seccion__sub" id="pub-modal-sub">Tu anuncio estará disponible para todos los compradores.</p>
       
       <form id="form-publicar" class="pub-form">
         <input type="hidden" id="pub-id-editar" value="">
-        <div class="campo campo--ancho"><label>Título del anuncio *</label><input type="text" id="pub-titulo" placeholder="Ej. Casa de 2 plantas frente a parque" required></div>
+        <div class="campo campo--ancho"><label>Título del anuncio *</label><input type="text" id="pub-titulo" placeholder="Ej. Casa familiar de 3 pisos" required></div>
         <div class="campo"><label>Operación *</label><select id="pub-operacion" required><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
         <div class="campo"><label>Tipo de inmueble *</label><select id="pub-tipo" required><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="terreno">Terreno</option><option value="local">Local comercial</option></select></div>
         <div class="campo"><label>Ciudad *</label><input type="text" id="pub-ciudad" value="Riobamba" required></div>
         <div class="campo"><label>Sector / Barrio *</label><input type="text" id="pub-sector" placeholder="Ej. Bellavista, Maldonado" required></div>
-        
-        <div class="campo campo--ancho">
-          <label>Precio (USD) *</label>
-          <input type="number" id="pub-precio" placeholder="Ej. 75000" min="1" required>
-        </div>
-
+        <div class="campo campo--ancho"><label>Precio (USD) *</label><input type="number" id="pub-precio" placeholder="Ej. 85000" min="1" required></div>
         <div class="campo"><label>Dormitorios</label><input type="number" id="pub-dorm" value="3" min="0"></div>
         <div class="campo"><label>Baños</label><input type="number" id="pub-banos" value="2" min="0"></div>
         <div class="campo"><label>Área techada (m²)</label><input type="number" id="pub-area" value="120" min="0"></div>
         <div class="campo"><label>Año de construcción</label><input type="number" id="pub-anio" value="2024"></div>
-        
-        <div class="campo campo--ancho">
-          <label>Enlace de Ubicación (Google Maps o Coordenadas)</label>
-          <input type="url" id="pub-mapa" placeholder="https://maps.app.goo.gl/... o https://maps.google.com/?q=...">
-        </div>
-
+        <div class="campo campo--ancho"><label>Enlace de Ubicación (Google Maps)</label><input type="url" id="pub-mapa" placeholder="https://maps.app.goo.gl/... o https://maps.google.com/?q=..."></div>
         <div class="campo campo--ancho"><label>Número de WhatsApp para contacto *</label><input type="tel" id="pub-wa" placeholder="Ej. 593987654321" required></div>
         <div class="campo campo--ancho"><label>Descripción detallada</label><textarea id="pub-desc" rows="3" placeholder="Detalla los acabados, comodidades o cercanías..." required></textarea></div>
         <div class="campo campo--ancho"><label>Características (separadas por coma)</label><input type="text" id="pub-caract" placeholder="Ej. Garaje, Patio, Terraza, Guardianía"></div>
-        
         <div class="campo campo--ancho">
-          <label id="lbl-fotos">Fotos y Videos *</label>
+          <label id="lbl-fotos">Fotos y Videos (Archivos multimedia) *</label>
           <input type="file" id="pub-fotos" accept="image/*,video/mp4,video/webm" multiple>
         </div>
-
         <button type="submit" class="btn btn--primario campo--ancho btn--enviar-pub" id="btn-submit-pub">Previsualizar publicación</button>
       </form>
     </div>
   </div>
 
-  <script src="script.js?v=5"></script>
+  <script src="script.js?v=6"></script>
 </body>
 </html>
