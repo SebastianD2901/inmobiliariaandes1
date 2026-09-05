@@ -1,5 +1,5 @@
 /* =========================================================
-   Andina Propiedades — Perfiles Duales, Chat y Mensajería
+   Andina Propiedades — Código Completo con Normalización WhatsApp
    ========================================================= */
 
 const CLOUDINARY_CLOUD_NAME = "ipe9us2o"; 
@@ -8,6 +8,19 @@ const CLOUDINARY_UPLOAD_PRESET = "andina_preset";
 const $ = (sel) => document.querySelector(sel);
 const money = (n) => new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 const ETIQUETA_TIPO = { casa: "Casa", departamento: "Departamento", terreno: "Terreno", local: "Local" };
+
+function formatearTelefonoEcuador(tel) {
+  if (!tel) return "";
+  let limpio = String(tel).replace(/\D/g, '');
+
+  if (limpio.startsWith("0")) {
+    limpio = "593" + limpio.substring(1);
+  } else if (!limpio.startsWith("593") && limpio.length === 9) {
+    limpio = "593" + limpio;
+  }
+
+  return limpio;
+}
 
 const PROPIEDAD_DEMO = {
   id: "demo-inicial",
@@ -192,7 +205,7 @@ async function subirACloudinary(file) {
 }
 
 // ==========================================
-// 5. AUTENTICACIÓN Y PERFIL DE COMPRADOR/VENDEDOR
+// 5. AUTENTICACIÓN Y PERFILES
 // ==========================================
 auth.onAuthStateChanged(async (user) => {
   usuarioActual = user;
@@ -474,7 +487,7 @@ $("#form-publicar").addEventListener("submit", (e) => {
     descripcion: $("#pub-desc").value.trim(),
     caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
     estado: "disponible",
-    asesorTelefono: $("#pub-wa").value.replace(/\D/g, ''),
+    asesorTelefono: formatearTelefonoEcuador($("#pub-wa").value),
     destacada: true,
     creadoEn: Date.now(),
     esEdicion: Boolean(idEditar)
@@ -645,7 +658,7 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
 });
 
 // ==========================================
-// 8. CHAT Y CONSULTAS DIRECTAS (COMPRADOR / VENDEDOR)
+// 8. CHAT Y CONSULTAS DIRECTAS
 // ==========================================
 function abrirModalChat(destinatarioUid, inmuebleId, inmuebleTitulo) {
   if (!usuarioActual) {
@@ -718,7 +731,6 @@ function escucharMensajes(uid) {
   if (unsubscribeMensajes) unsubscribeMensajes();
   if (unsubscribeEnviados) unsubscribeEnviados();
 
-  // 1. Mensajes que este usuario RECIBE
   unsubscribeMensajes = db.collection("usuarios").doc(uid).collection("mensajes")
     .onSnapshot((snapshot) => {
       const listaRecibidos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -738,7 +750,6 @@ function escucharMensajes(uid) {
       renderizarBandejaRecibidos(listaRecibidos);
     });
 
-  // 2. Consultas que este usuario ENVIÓ como comprador
   unsubscribeEnviados = db.collection("usuarios").doc(uid).collection("mensajes_enviados")
     .onSnapshot((snapshot) => {
       const listaEnviados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -834,7 +845,6 @@ function renderizarBandejaEnviados(mensajes) {
   }).join("");
 }
 
-// Responder mensaje
 const listaMensajesRecibidos = $("#lista-mensajes-recibidos");
 if (listaMensajesRecibidos) {
   listaMensajesRecibidos.addEventListener("submit", async (e) => {
@@ -863,7 +873,6 @@ if (listaMensajesRecibidos) {
   });
 }
 
-// Pestañas de Gestión
 $("#tab-btn-inmuebles").addEventListener("click", () => {
   activarPestana("inmuebles");
 });
@@ -1182,9 +1191,7 @@ function renderizarCatalogo(lista) {
   }).join("");
 }
 
-// Clics en catálogo general
 $("#grilla-propiedades").addEventListener("click", (e) => {
-  // 1. Prioridad absoluta al botón de Chat Directo
   const btnChat = e.target.closest("[data-chat-uid]");
   if (btnChat) {
     e.preventDefault();
@@ -1196,12 +1203,10 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
     return;
   }
 
-  // 2. Si es carrusel o elemento con stopPropagation, salir
   if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) {
     return;
   }
 
-  // 3. Gestionar/editar
   const btnEditar = e.target.closest("[data-editar]");
   if (btnEditar) {
     e.stopPropagation();
@@ -1211,7 +1216,6 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
     return;
   }
 
-  // 4. Abrir detalle
   const tarjeta = e.target.closest(".tarjeta");
   if (!tarjeta) return;
   const p = PROPIEDADES.find(x => String(x.id) === String(tarjeta.dataset.id));
@@ -1223,7 +1227,7 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
 function abrirModalDetalle(p) {
   const esPropietario = Boolean(usuarioActual && p.creadorUid && usuarioActual.uid === p.creadorUid);
   const estaCerrado = p.estado === "vendido" || p.estado === "alquilado";
-  const telefonoContacto = p.asesorTelefono || "";
+  const telefonoContacto = formatearTelefonoEcuador(p.asesorTelefono || "");
   const mensajeWA = encodeURIComponent(`Hola, vi en Los Andes su anuncio "${p.titulo}" por ${money(p.precio)}. ¿Sigue disponible?`);
   const precioM2 = p.area > 0 ? money(Math.round(p.precio / p.area)) : null;
 
@@ -1424,7 +1428,7 @@ $("#btn-tema").addEventListener("click", () => {
   document.documentElement.setAttribute("data-theme", actual === "dark" ? "light" : "dark");
 });
 
-// Inicio
+// Inicialización de la SPA
 const rutaInicial = window.location.hash.replace("#", "") || "inicio";
 cambiarVista(rutaInicial);
 calcularSimulador();
