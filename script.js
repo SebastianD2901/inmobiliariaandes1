@@ -649,19 +649,20 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
 // ==========================================
 function abrirModalChat(destinatarioUid, inmuebleId, inmuebleTitulo) {
   if (!usuarioActual) {
+    alert("Inicia sesión con tu cuenta de Google para enviar un mensaje directo al vendedor.");
     $("#modal-auth").hidden = false;
     document.body.classList.add("sin-scroll");
     return;
   }
 
   if (usuarioActual.uid === destinatarioUid) {
-    alert("No puedes enviarte un mensaje a ti mismo.");
+    alert("Eres el propietario de esta publicación; no puedes enviarte un mensaje a ti mismo.");
     return;
   }
 
-  $("#chat-destinatario-uid").value = destinatarioUid;
-  $("#chat-inmueble-id").value = inmuebleId;
-  $("#chat-inmueble-titulo").textContent = `Inmueble: "${inmuebleTitulo}"`;
+  $("#chat-destinatario-uid").value = destinatarioUid || "";
+  $("#chat-inmueble-id").value = inmuebleId || "";
+  $("#chat-inmueble-titulo").textContent = `Inmueble: "${inmuebleTitulo || 'Publicación'}"`;
   $("#chat-mensaje").value = "";
 
   $("#modal-chat").hidden = false;
@@ -699,7 +700,6 @@ $("#form-chat").addEventListener("submit", async (e) => {
       respuestas: []
     };
 
-    // Guardar en la bandeja del destinatario y en la del remitente
     await db.collection("usuarios").doc(destinatarioUid).collection("mensajes").add(nuevoMensaje);
     await db.collection("usuarios").doc(usuarioActual.uid).collection("mensajes_enviados").add(nuevoMensaje);
 
@@ -1169,9 +1169,9 @@ function renderizarCatalogo(lista) {
             ${p.area > 0 ? `<li><strong>${p.area}</strong> m²</li>` : ''}
           </ul>
 
-          ${!esPropietario && p.creadorUid && !estaVendidoOAlquilado ? `
-            <div class="tarjeta__contacto-fila" data-stop-propagation="true">
-              <button type="button" class="btn btn--chat btn--sm btn--full" data-chat-uid="${p.creadorUid}" data-chat-inmueble="${p.id}" data-chat-titulo="${p.titulo}">
+          ${!esPropietario && !estaVendidoOAlquilado ? `
+            <div class="tarjeta__contacto-fila">
+              <button type="button" class="btn btn--chat btn--sm btn--full" data-chat-uid="${p.creadorUid || ''}" data-chat-inmueble="${p.id}" data-chat-titulo="${p.titulo}">
                 💬 Chat Directo
               </button>
             </div>
@@ -1182,16 +1182,26 @@ function renderizarCatalogo(lista) {
   }).join("");
 }
 
+// Clics en catálogo general
 $("#grilla-propiedades").addEventListener("click", (e) => {
-  if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) return;
-
+  // 1. Prioridad absoluta al botón de Chat Directo
   const btnChat = e.target.closest("[data-chat-uid]");
   if (btnChat) {
+    e.preventDefault();
     e.stopPropagation();
-    abrirModalChat(btnChat.dataset.chatUid, btnChat.dataset.chatInmueble, btnChat.dataset.chatTitulo);
+    const targetUid = btnChat.dataset.chatUid;
+    const inmuebleId = btnChat.dataset.chatInmueble;
+    const titulo = btnChat.dataset.chatTitulo;
+    abrirModalChat(targetUid, inmuebleId, titulo);
     return;
   }
 
+  // 2. Si es carrusel o elemento con stopPropagation, salir
+  if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) {
+    return;
+  }
+
+  // 3. Gestionar/editar
   const btnEditar = e.target.closest("[data-editar]");
   if (btnEditar) {
     e.stopPropagation();
@@ -1201,6 +1211,7 @@ $("#grilla-propiedades").addEventListener("click", (e) => {
     return;
   }
 
+  // 4. Abrir detalle
   const tarjeta = e.target.closest(".tarjeta");
   if (!tarjeta) return;
   const p = PROPIEDADES.find(x => String(x.id) === String(tarjeta.dataset.id));
@@ -1286,7 +1297,7 @@ function abrirModalDetalle(p) {
           </a>
         ` : ''}
         
-        ${!estaCerrado && !esPropietario && p.creadorUid ? `
+        ${!estaCerrado && !esPropietario ? `
           <button type="button" class="btn btn--chat btn--full" id="btn-modal-chat">
             💬 Iniciar Chat Directo con el Propietario
           </button>
@@ -1303,7 +1314,7 @@ function abrirModalDetalle(p) {
     </div>
   `;
 
-  if (!esPropietario && !estaCerrado && p.creadorUid) {
+  if (!esPropietario && !estaCerrado) {
     const btnChatModal = $("#btn-modal-chat");
     if (btnChatModal) {
       btnChatModal.addEventListener("click", () => {
