@@ -1,5 +1,5 @@
 /* =========================================================
-   Andina Propiedades — SPA Routing, Mis Inmuebles & Drag/Drop
+   Andina Propiedades — Perfil de Usuario, Mensajería & Cloudinary
    ========================================================= */
 
 const CLOUDINARY_CLOUD_NAME = "ipe9us2o"; 
@@ -35,7 +35,6 @@ const PROPIEDAD_DEMO = {
 // 1. SISTEMA DE RUTAS (SPA NAVIGATION)
 // ==========================================
 function cambiarVista(vistaId) {
-  // Ocultar todas las vistas
   document.querySelectorAll(".vista").forEach(v => {
     v.classList.remove("vista--activa");
   });
@@ -46,17 +45,14 @@ function cambiarVista(vistaId) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // Sincronizar clases activas en Navbar Desktop
   document.querySelectorAll(".nav__enlace").forEach(enlace => {
     enlace.classList.toggle("activo", enlace.dataset.navegar === vistaId);
   });
 
-  // Sincronizar clases activas en Barra Móvil
   document.querySelectorAll(".barra-movil__item").forEach(item => {
     item.classList.toggle("activo", item.dataset.navegar === vistaId);
   });
 
-  // Si navega a "mis-propiedades", actualizar la lista de sus inmuebles
   if (vistaId === "mis-propiedades") {
     renderizarMisPropiedades();
   }
@@ -119,12 +115,15 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 
 let PROPIEDADES = [];
 let usuarioActual = null;
+let datosPerfilActual = null; // { nombre, username, fotoUrl }
+let unsubscribeMensajes = null;
 let propiedadEnBorrador = null;
-let elementosGaleriaBorrador = []; // Objetos { file: File|null, url: string, esVideo: boolean }
+let elementosGaleriaBorrador = []; 
 let elementoArrastradoIdx = null;
+let archivoFotoPerfilSeleccionado = null;
 
 // ==========================================
-// 3. ESCUCHA FIRESTORE EN TIEMPO REAL
+// 3. ESCUCHA FIRESTORE (INMUEBLES)
 // ==========================================
 db.collection("propiedades").onSnapshot(
   (snapshot) => {
@@ -192,12 +191,13 @@ async function subirACloudinary(file) {
 }
 
 // ==========================================
-// 5. AUTENTICACIÓN GOOGLE
+// 5. AUTENTICACIÓN Y GESTIÓN DE PERFIL
 // ==========================================
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async (user) => {
   usuarioActual = user;
   const navMisProp = $("#nav-mis-propiedades");
   const barraMisProp = $("#barra-mis-propiedades");
+  const chipPerfilHeader = $("#header-perfil-chip");
 
   if (user) {
     $("#btn-login-modal").hidden = true;
@@ -205,6 +205,10 @@ auth.onAuthStateChanged(user => {
     $("#btn-publicar").hidden = false;
     if (navMisProp) navMisProp.hidden = false;
     if (barraMisProp) barraMisProp.hidden = false;
+
+    // Verificar si el usuario ya tiene su perfil creado en Firestore
+    await cargarOExigirPerfil(user);
+    escucharMensajesRecibidos(user.uid);
     cerrarCualquierModal();
   } else {
     $("#btn-login-modal").hidden = false;
@@ -212,14 +216,135 @@ auth.onAuthStateChanged(user => {
     $("#btn-publicar").hidden = true;
     if (navMisProp) navMisProp.hidden = true;
     if (barraMisProp) barraMisProp.hidden = true;
+    if (chipPerfilHeader) chipPerfilHeader.hidden = true;
+    datosPerfilActual = null;
 
-    // Si estaba en mis-propiedades, regresar a inicio
+    if (unsubscribeMensajes) {
+      unsubscribeMensajes();
+      unsubscribeMensajes = null;
+    }
+
     if (window.location.hash === "#mis-propiedades") {
       cambiarVista("inicio");
     }
   }
   filtrarYEjeCatalogo();
   renderizarMisPropiedades();
+});
+
+async function cargarOExigirPerfil(user) {
+  try {
+    const userDoc = await db.collection("usuarios").doc(user.uid).get();
+    if (userDoc.exists) {
+      datosPerfilActual = userDoc.data();
+      actualizarUiPerfil(datosPerfilActual);
+    } else {
+      // Exigir creación obligatoria de perfil
+      abrirModalPerfil(true);
+    }
+  } catch (err) {
+    console.error("Error al cargar perfil:", err);
+  }
+}
+
+function actualizarUiPerfil(perfil) {
+  const avatarUrl = perfil.fotoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+  
+  // Header
+  const chip = $("#header-perfil-chip");
+  if (chip) {
+    chip.hidden = false;
+    $("#header-avatar").src = avatarUrl;
+    $("#header-username").textContent = `@${perfil.username}`;
+  }
+
+  // Tarjeta de Mis Inmuebles
+  if ($("#perfil-avatar")) $("#perfil-avatar").src = avatarUrl;
+  if ($("#perfil-nombre")) $("#perfil-nombre").textContent = perfil.nombre;
+  if ($("#perfil-handle")) $("#perfil-handle").textContent = `@${perfil.username}`;
+}
+
+function abrirModalPerfil(esObligatorio = false) {
+  const modal = $("#modal-perfil");
+  const form = $("#form-perfil");
+  form.reset();
+  archivoFotoPerfilSeleccionado = null;
+
+  if (datosPerfilActual) {
+    $("#perfil-modal-titulo").textContent = "Editar mi Perfil";
+    $("#perfil-input-nombre").value = datosPerfilActual.nombre;
+    $("#perfil-input-username").value = datosPerfilActual.username;
+    $("#perfil-avatar-img").src = datosPerfilActual.fotoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+  } else if (usuarioActual) {
+    $("#perfil-modal-titulo").textContent = "Crea tu Perfil";
+    $("#perfil-input-nombre").value = usuarioActual.displayName || "";
+    $("#perfil-input-username").value = (usuarioActual.email.split("@")[0]).replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
+    $("#perfil-avatar-img").src = usuarioActual.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+  }
+
+  modal.hidden = false;
+  document.body.classList.add("sin-scroll");
+}
+
+$("#perfil-input-foto").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    archivoFotoPerfilSeleccionado = file;
+    $("#perfil-avatar-img").src = URL.createObjectURL(file);
+  }
+});
+
+$("#btn-abrir-editar-perfil").addEventListener("click", () => abrirModalPerfil(false));
+
+$("#form-perfil").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!usuarioActual) return;
+
+  const btn = $("#btn-guardar-perfil");
+  btn.disabled = true;
+  btn.textContent = "Guardando perfil...";
+
+  const nombre = $("#perfil-input-nombre").value.trim();
+  const username = $("#perfil-input-username").value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+  if (!username) {
+    alert("Por favor ingresa un nombre de usuario válido.");
+    btn.disabled = false;
+    btn.textContent = "Guardar y Continuar";
+    return;
+  }
+
+  try {
+    let fotoUrl = datosPerfilActual ? datosPerfilActual.fotoUrl : (usuarioActual.photoURL || "");
+
+    // Si seleccionó una nueva foto, subir a Cloudinary
+    if (archivoFotoPerfilSeleccionado) {
+      btn.textContent = "Subiendo foto de perfil...";
+      fotoUrl = await subirACloudinary(archivoFotoPerfilSeleccionado);
+    }
+
+    const payloadPerfil = {
+      uid: usuarioActual.uid,
+      email: usuarioActual.email,
+      nombre: nombre,
+      username: username,
+      fotoUrl: fotoUrl,
+      actualizadoEn: Date.now()
+    };
+
+    await db.collection("usuarios").doc(usuarioActual.uid).set(payloadPerfil, { merge: true });
+    datosPerfilActual = payloadPerfil;
+    actualizarUiPerfil(datosPerfilActual);
+
+    $("#modal-perfil").hidden = true;
+    document.body.classList.remove("sin-scroll");
+    alert("¡Perfil guardado con éxito!");
+  } catch (err) {
+    alert("Error al guardar perfil: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Guardar y Continuar";
+  }
 });
 
 $("#btn-logout").addEventListener("click", () => auth.signOut());
@@ -241,6 +366,8 @@ $("#btn-google").addEventListener("click", () => {
 // ==========================================
 function cerrarCualquierModal() {
   document.querySelectorAll(".modal").forEach(m => {
+    // No cerrar si el perfil es nuevo y no está guardado
+    if (m.id === "modal-perfil" && usuarioActual && !datosPerfilActual) return;
     m.hidden = true;
     m.querySelectorAll("video").forEach(v => v.pause());
   });
@@ -262,7 +389,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ==========================================
-// 7. FORMULARIO, PREVIEW Y REORDENAMIENTO
+// 7. PUBLICACIÓN Y REORDENAMIENTO
 // ==========================================
 $("#btn-publicar").addEventListener("click", () => {
   prepararFormularioPublicacion(null);
@@ -306,7 +433,6 @@ function prepararFormularioPublicacion(propiedadAEditar) {
   }
 }
 
-// Previsualizar
 $("#form-publicar").addEventListener("submit", (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -339,9 +465,16 @@ $("#form-publicar").addEventListener("submit", (e) => {
     return;
   }
 
+  const autorNombre = datosPerfilActual ? datosPerfilActual.nombre : (usuarioActual ? usuarioActual.displayName : "Propietario");
+  const autorUsername = datosPerfilActual ? datosPerfilActual.username : "usuario";
+  const autorFoto = datosPerfilActual ? datosPerfilActual.fotoUrl : (usuarioActual ? usuarioActual.photoURL : "");
+
   propiedadEnBorrador = {
     id: idEditar || null,
-    creadorUid: usuarioActual ? usuarioActual.uid : (idEditar ? PROPIEDADES.find(p => String(p.id) === String(idEditar))?.creadorUid : null),
+    creadorUid: usuarioActual ? usuarioActual.uid : null,
+    autorNombre: autorNombre,
+    autorUsername: autorUsername,
+    autorFoto: autorFoto,
     titulo: $("#pub-titulo").value.trim(),
     operacion: $("#pub-operacion").value,
     tipo: $("#pub-tipo").value,
@@ -355,7 +488,6 @@ $("#form-publicar").addEventListener("submit", (e) => {
     descripcion: $("#pub-desc").value.trim(),
     caracteristicas: $("#pub-caract").value ? $("#pub-caract").value.split(",").map(c => c.trim()).filter(Boolean) : [],
     estado: "disponible",
-    asesorNombre: usuarioActual ? (usuarioActual.displayName || usuarioActual.email.split("@")[0]) : "Propietario",
     asesorTelefono: $("#pub-wa").value.replace(/\D/g, ''),
     destacada: true,
     creadoEn: Date.now(),
@@ -369,7 +501,6 @@ function mostrarModalPreview() {
   const p = propiedadEnBorrador;
   const urlsActuales = elementosGaleriaBorrador.map(item => item.url);
 
-  // Renderizar cuadrícula interactiva de fotos reordenables
   const contenedorReordenar = $("#reordenador-fotos");
   if (contenedorReordenar) {
     contenedorReordenar.innerHTML = elementosGaleriaBorrador.map((item, idx) => `
@@ -405,15 +536,6 @@ function mostrarModalPreview() {
         <h3>Descripción</h3>
         <p>${p.descripcion}</p>
       </div>
-
-      ${p.caracteristicas && p.caracteristicas.length ? `
-        <div class="modal__bloque">
-          <h3>Comodidades Destacadas</h3>
-          <div class="modal__tags">
-            ${p.caracteristicas.map(c => `<span>✓ ${c}</span>`).join('')}
-          </div>
-        </div>
-      ` : ''}
     </div>
   `;
 
@@ -421,14 +543,9 @@ function mostrarModalPreview() {
   $("#modal-preview").hidden = false;
 }
 
-// ==========================================
-// DRAG AND DROP TÁCTIL Y ESCRITORIO
-// ==========================================
 function activarDragAndDrop() {
   const items = document.querySelectorAll(".reordenador-item");
-
   items.forEach(item => {
-    // Desktop HTML5 Drag
     item.addEventListener("dragstart", (e) => {
       elementoArrastradoIdx = Number(item.dataset.index);
       item.classList.add("arrastrando");
@@ -456,8 +573,7 @@ function activarDragAndDrop() {
       }
     });
 
-    // Touch en Celulares
-    item.addEventListener("touchstart", (e) => {
+    item.addEventListener("touchstart", () => {
       elementoArrastradoIdx = Number(item.dataset.index);
       item.classList.add("arrastrando");
     }, { passive: true });
@@ -490,16 +606,13 @@ $("#btn-preview-volver").addEventListener("click", (e) => {
   $("#modal-publicar").hidden = false;
 });
 
-// Guardar en Cloudinary y Firestore respetando el orden reordenado
 $("#btn-preview-confirmar").addEventListener("click", async (e) => {
   e.preventDefault();
-  e.stopPropagation();
-
   if (!propiedadEnBorrador || elementosGaleriaBorrador.length === 0) return;
 
   const btnConfirmar = $("#btn-preview-confirmar");
   btnConfirmar.disabled = true;
-  btnConfirmar.textContent = "Subiendo fotos y videos a la nube...";
+  btnConfirmar.textContent = "Subiendo archivos a la nube...";
 
   const p = { ...propiedadEnBorrador };
   const esEdicion = p.esEdicion;
@@ -536,11 +649,9 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
     $("#form-publicar").reset();
     alert("¡Publicación guardada con éxito!");
 
-    // Mostrar el apartado de sus publicaciones
     cambiarVista("mis-propiedades");
   } catch (err) {
-    console.error("Error al publicar:", err);
-    alert("Error al subir archivo: " + err.message);
+    alert("Error al publicar: " + err.message);
   } finally {
     btnConfirmar.disabled = false;
     btnConfirmar.textContent = "Confirmar y Publicar";
@@ -548,7 +659,190 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
 });
 
 // ==========================================
-// 8. GESTIÓN: ESTADO Y ELIMINACIÓN
+// 8. CHAT DIRECTO Y MENSAJERÍA
+// ==========================================
+function abrirModalChat(destinatarioUid, inmuebleId, inmuebleTitulo) {
+  if (!usuarioActual) {
+    $("#modal-auth").hidden = false;
+    document.body.classList.add("sin-scroll");
+    return;
+  }
+
+  if (usuarioActual.uid === destinatarioUid) {
+    alert("No puedes enviarte un mensaje a ti mismo.");
+    return;
+  }
+
+  $("#chat-destinatario-uid").value = destinatarioUid;
+  $("#chat-inmueble-id").value = inmuebleId;
+  $("#chat-inmueble-titulo").textContent = `Inmueble: "${inmuebleTitulo}"`;
+  $("#chat-mensaje").value = "";
+
+  $("#modal-chat").hidden = false;
+  document.body.classList.add("sin-scroll");
+}
+
+$("#form-chat").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const destinatarioUid = $("#chat-destinatario-uid").value;
+  const inmuebleId = $("#chat-inmueble-id").value;
+  const texto = $("#chat-mensaje").value.trim();
+
+  if (!texto) return;
+
+  const btn = $("#btn-enviar-chat");
+  btn.disabled = true;
+  btn.textContent = "Enviando mensaje...";
+
+  const remitenteNombre = datosPerfilActual ? datosPerfilActual.nombre : usuarioActual.displayName;
+  const remitenteUsername = datosPerfilActual ? datosPerfilActual.username : "usuario";
+  const remitenteFoto = datosPerfilActual ? datosPerfilActual.fotoUrl : (usuarioActual.photoURL || "");
+
+  try {
+    const nuevoMensaje = {
+      inmuebleId: inmuebleId,
+      inmuebleTitulo: $("#chat-inmueble-titulo").textContent.replace('Inmueble: ', '').replace(/"/g, ''),
+      remitenteUid: usuarioActual.uid,
+      remitenteNombre: remitenteNombre,
+      remitenteUsername: remitenteUsername,
+      remitenteFoto: remitenteFoto,
+      destinatarioUid: destinatarioUid,
+      mensaje: texto,
+      creadoEn: Date.now(),
+      leido: false,
+      respuestas: []
+    };
+
+    // Guardar en la subcolección de mensajes del destinatario
+    await db.collection("usuarios").doc(destinatarioUid).collection("mensajes").add(nuevoMensaje);
+
+    $("#modal-chat").hidden = true;
+    document.body.classList.remove("sin-scroll");
+    alert("¡Tu mensaje fue enviado directamente al perfil del vendedor!");
+  } catch (err) {
+    alert("Error al enviar el mensaje: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Enviar Mensaje";
+  }
+});
+
+function escucharMensajesRecibidos(uid) {
+  if (unsubscribeMensajes) unsubscribeMensajes();
+
+  unsubscribeMensajes = db.collection("usuarios").doc(uid).collection("mensajes")
+    .onSnapshot((snapshot) => {
+      const listaMensajes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      listaMensajes.sort((a, b) => (b.creadoEn || 0) - (a.creadoEn || 0));
+
+      const noLeidos = listaMensajes.filter(m => !m.leido).length;
+      const navBadge = $("#contador-nav-mensajes");
+      if (navBadge) {
+        navBadge.textContent = noLeidos;
+        navBadge.hidden = noLeidos === 0;
+      }
+
+      if ($("#cuenta-mis-mensajes")) {
+        $("#cuenta-mis-mensajes").textContent = listaMensajes.length;
+      }
+
+      renderizarBandejaMensajes(listaMensajes);
+    });
+}
+
+function renderizarBandejaMensajes(mensajes) {
+  const contenedor = $("#lista-mensajes-recibidos");
+  if (!contenedor) return;
+
+  if (mensajes.length === 0) {
+    contenedor.innerHTML = `<p style="text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No tienes mensajes o consultas recibidas aún.</p>`;
+    return;
+  }
+
+  contenedor.innerHTML = mensajes.map(m => {
+    const avatar = m.remitenteFoto || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+    const fecha = new Date(m.creadoEn).toLocaleDateString("es-EC", { hour: "2-digit", minute: "2-digit" });
+
+    return `
+      <article class="mensaje-card" data-msg-id="${m.id}">
+        <div class="mensaje-card__header">
+          <div class="mensaje-card__remitente">
+            <img src="${avatar}" class="mensaje-card__avatar" alt="Avatar">
+            <div>
+              <strong>${m.remitenteNombre}</strong> <small style="color: var(--c-texto-suave);">(@${m.remitenteUsername})</small>
+            </div>
+          </div>
+          <span class="mensaje-card__tiempo">${fecha}</span>
+        </div>
+
+        <div class="mensaje-card__inmueble">Sobre tu anuncio: ${m.inmuebleTitulo}</div>
+        <div class="mensaje-card__cuerpo">${m.mensaje}</div>
+
+        ${m.respuestas && m.respuestas.length > 0 ? `
+          <div class="mensaje-card__respuestas">
+            ${m.respuestas.map(r => `
+              <div class="respuesta-item">
+                <strong>Tú:</strong> ${r.texto} <small style="float: right; color: var(--c-texto-suave);">${new Date(r.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <form class="mensaje-card__responder" data-form-responder="${m.id}">
+          <input type="text" placeholder="Escribe una respuesta rápida..." required style="height: 40px !important;">
+          <button type="submit" class="btn btn--primario btn--sm">Responder</button>
+        </form>
+      </article>
+    `;
+  }).join("");
+}
+
+// Enviar respuesta desde la bandeja de mensajes
+const listaMensajesRecibidos = $("#lista-mensajes-recibidos");
+if (listaMensajesRecibidos) {
+  listaMensajesRecibidos.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target.closest("[data-form-responder]");
+    if (!form || !usuarioActual) return;
+
+    const msgId = form.dataset.formResponder;
+    const input = form.querySelector("input");
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    try {
+      const docRef = db.collection("usuarios").doc(usuarioActual.uid).collection("mensajes").doc(msgId);
+      await docRef.update({
+        respuestas: firebase.firestore.FieldValue.arrayUnion({
+          texto: texto,
+          fecha: Date.now()
+        }),
+        leido: true
+      });
+      input.value = "";
+    } catch (err) {
+      alert("Error al responder: " + err.message);
+    }
+  });
+}
+
+// Pestañas de "Mis Inmuebles"
+$("#tab-btn-inmuebles").addEventListener("click", () => {
+  $("#tab-btn-inmuebles").classList.add("activo");
+  $("#tab-btn-mensajes").classList.remove("activo");
+  $("#seccion-mis-inmuebles").classList.add("activo");
+  $("#seccion-mis-mensajes").classList.remove("activo");
+});
+
+$("#tab-btn-mensajes").addEventListener("click", () => {
+  $("#tab-btn-mensajes").classList.add("activo");
+  $("#tab-btn-inmuebles").classList.remove("activo");
+  $("#seccion-mis-mensajes").classList.add("activo");
+  $("#seccion-mis-inmuebles").classList.remove("activo");
+});
+
+// ==========================================
+// 9. GESTIÓN: ESTADO Y ELIMINACIÓN
 // ==========================================
 async function cambiarEstadoPropiedad(id, nuevoEstado) {
   try {
@@ -559,7 +853,7 @@ async function cambiarEstadoPropiedad(id, nuevoEstado) {
 }
 
 async function eliminarPropiedad(id) {
-  if (!confirm("¿Deseas eliminar definitivamente esta publicación? No se podrá recuperar.")) return;
+  if (!confirm("¿Deseas eliminar definitivamente esta publicación?")) return;
 
   try {
     await db.collection("propiedades").doc(String(id)).delete();
@@ -571,7 +865,7 @@ async function eliminarPropiedad(id) {
 }
 
 // ==========================================
-// 9. RENDERIZADO EXCLUSIVO: "MIS INMUEBLES"
+// 10. RENDERIZADO EXCLUSIVO: "MIS INMUEBLES"
 // ==========================================
 function renderizarMisPropiedades() {
   const grilla = $("#grilla-mis-propiedades");
@@ -588,6 +882,9 @@ function renderizarMisPropiedades() {
   }
 
   const misCasas = PROPIEDADES.filter(p => p.creadorUid && p.creadorUid === usuarioActual.uid);
+
+  if ($("#cuenta-mis-inmuebles")) $("#cuenta-mis-inmuebles").textContent = misCasas.length;
+  if ($("#perfil-total-anuncios")) $("#perfil-total-anuncios").textContent = `${misCasas.length} Inmuebles publicados`;
 
   if (misCasas.length === 0) {
     grilla.innerHTML = `
@@ -639,7 +936,6 @@ function renderizarMisPropiedades() {
           </ul>
         </div>
 
-        <!-- Botones directos de gestión de propietario -->
         <div class="tarjeta__acciones-propietario">
           <button type="button" class="btn btn--secundario btn--sm" data-accion-editar="${p.id}">✎ Editar</button>
           <button type="button" class="btn btn--secundario btn--sm" data-accion-estado="${p.id}">
@@ -652,7 +948,6 @@ function renderizarMisPropiedades() {
   }).join("");
 }
 
-// Clics en la vista "Mis Inmuebles"
 const grillaMisPropiedades = $("#grilla-mis-propiedades");
 if (grillaMisPropiedades) {
   grillaMisPropiedades.addEventListener("click", (e) => {
@@ -692,7 +987,7 @@ if (grillaMisPropiedades) {
 }
 
 // ==========================================
-// 10. MOTOR DE CARRUSEL
+// 11. MOTOR DE CARRUSEL
 // ==========================================
 function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
   if (!galeria || galeria.length === 0) {
@@ -778,7 +1073,7 @@ document.addEventListener("click", (e) => {
 });
 
 // ==========================================
-// 11. RENDERIZADO DEL CATÁLOGO GENERAL
+// 12. RENDERIZADO DEL CATÁLOGO GENERAL
 // ==========================================
 function renderizarCatalogo(lista) {
   const grilla = $("#grilla-propiedades");
@@ -826,15 +1121,30 @@ function renderizarCatalogo(lista) {
             ${p.banos > 0 ? `<li><strong>${p.banos}</strong> baños</li>` : ''}
             ${p.area > 0 ? `<li><strong>${p.area}</strong> m²</li>` : ''}
           </ul>
+
+          ${!esPropietario && p.creadorUid && !estaVendidoOAlquilado ? `
+            <div class="tarjeta__contacto-fila" data-stop-propagation="true">
+              <button type="button" class="btn btn--chat btn--sm btn--full" data-chat-uid="${p.creadorUid}" data-chat-inmueble="${p.id}" data-chat-titulo="${p.titulo}">
+                💬 Chat Directo
+              </button>
+            </div>
+          ` : ''}
         </div>
       </article>
     `;
   }).join("");
 }
 
-// Clic en tarjetas de catálogo general -> Modal Detalle
+// Clics en catálogo
 $("#grilla-propiedades").addEventListener("click", (e) => {
   if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) return;
+
+  const btnChat = e.target.closest("[data-chat-uid]");
+  if (btnChat) {
+    e.stopPropagation();
+    abrirModalChat(btnChat.dataset.chatUid, btnChat.dataset.chatInmueble, btnChat.dataset.chatTitulo);
+    return;
+  }
 
   const btnEditar = e.target.closest("[data-editar]");
   if (btnEditar) {
@@ -947,9 +1257,16 @@ function abrirModalDetalle(p) {
             📍 Abrir Ubicación en Google Maps
           </a>
         ` : ''}
+        
+        ${!estaCerrado && !esPropietario && p.creadorUid ? `
+          <button type="button" class="btn btn--chat btn--full" id="btn-modal-chat">
+            💬 Iniciar Chat Directo con el Propietario
+          </button>
+        ` : ''}
+
         ${!estaCerrado ? `
           <a class="btn btn--wa btn--full" href="https://wa.me/${telefonoContacto}?text=${mensajeWA}" target="_blank" rel="noopener">
-            💬 Contactar al Propietario por WhatsApp
+            Contactar por WhatsApp
           </a>
         ` : `
           <div class="aviso-cerrado">Esta propiedad ya se encuentra ${p.estado}.</div>
@@ -957,6 +1274,16 @@ function abrirModalDetalle(p) {
       </div>
     </div>
   `;
+
+  if (!esPropietario && !estaCerrado && p.creadorUid) {
+    const btnChatModal = $("#btn-modal-chat");
+    if (btnChatModal) {
+      btnChatModal.addEventListener("click", () => {
+        $("#modal").hidden = true;
+        abrirModalChat(p.creadorUid, p.id, p.titulo);
+      });
+    }
+  }
 
   if (esPropietario) {
     $("#btn-prop-editar").addEventListener("click", () => {
@@ -982,7 +1309,7 @@ function abrirModalDetalle(p) {
 }
 
 // ==========================================
-// 12. SIMULADOR HIPOTECARIO
+// 13. SIMULADOR HIPOTECARIO
 // ==========================================
 function calcularSimulador() {
   const monto = Number($("#sim-monto").value) || 0;
@@ -1011,7 +1338,7 @@ $("#form-simulador").addEventListener("submit", (e) => {
 });
 
 // ==========================================
-// 13. BUSCADOR POR CIUDAD, SECTOR Y FILTROS
+// 14. BUSCADOR Y FILTROS
 // ==========================================
 function filtrarYEjeCatalogo() {
   const ciudadFiltro = $("#f-ciudad") ? $("#f-ciudad").value.toLowerCase().trim() : "";
@@ -1058,7 +1385,7 @@ $("#btn-tema").addEventListener("click", () => {
   document.documentElement.setAttribute("data-theme", actual === "dark" ? "light" : "dark");
 });
 
-// Inicialización
+// Inicialización de la SPA
 const rutaInicial = window.location.hash.replace("#", "") || "inicio";
 cambiarVista(rutaInicial);
 calcularSimulador();

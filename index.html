@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Los Andes Propiedades | Plataforma Inmobiliaria</title>
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="styles.css?v=13">
 
   <!-- SDKs de Firebase (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -25,7 +25,9 @@
       <nav class="nav" id="nav-principal">
         <a href="#inicio" class="nav__enlace activo" data-navegar="inicio">Inicio</a>
         <a href="#propiedades" class="nav__enlace" data-navegar="propiedades">Propiedades</a>
-        <a href="#mis-propiedades" class="nav__enlace" id="nav-mis-propiedades" data-navegar="mis-propiedades" hidden>Mis Inmuebles</a>
+        <a href="#mis-propiedades" class="nav__enlace" id="nav-mis-propiedades" data-navegar="mis-propiedades" hidden>
+          Mis Inmuebles <span class="badge-mensajes" id="contador-nav-mensajes" hidden>0</span>
+        </a>
         <a href="#simulador" class="nav__enlace" data-navegar="simulador">Simulador</a>
         <a href="#contacto" class="nav__enlace" data-navegar="contacto">Asesoría</a>
       </nav>
@@ -33,6 +35,12 @@
       <div class="header__acciones">
         <button class="btn btn--primario btn--sm" id="btn-login-modal">Ingresar</button>
         <button class="btn btn--secundario btn--sm" id="btn-publicar" hidden>+ Publicar</button>
+        
+        <div class="usuario-header" id="header-perfil-chip" hidden>
+          <img id="header-avatar" class="usuario-header__avatar" src="" alt="Avatar">
+          <span id="header-username" class="usuario-header__nombre"></span>
+        </div>
+
         <button class="btn btn--texto btn--sm" id="btn-logout" hidden>Salir</button>
         
         <button class="icono-btn" id="btn-tema" type="button" aria-label="Cambiar tema">
@@ -74,7 +82,7 @@
             <div class="proposito-card" data-navegar="propiedades">
               <div class="proposito-card__icono">🏠</div>
               <h3>Trato Directo</h3>
-              <p>Habla directamente con propietarios por WhatsApp. Sin intermediarios ni trabas.</p>
+              <p>Habla directamente con propietarios por chat o WhatsApp. Sin intermediarios ni trabas.</p>
             </div>
             <div class="proposito-card" data-navegar="simulador">
               <div class="proposito-card__icono">📊</div>
@@ -170,19 +178,47 @@
     </section>
 
     <!-- ==========================================
-         VISTA 3: MIS PROPIEDADES (GESTIÓN EXCLUSIVA)
+         VISTA 3: MIS PROPIEDADES Y MENSAJES
          ========================================== -->
     <section class="vista" id="vista-mis-propiedades">
       <div class="contenedor vista-contenedor">
-        <header class="vista-head vista-head--flex">
-          <div>
-            <h2 class="vista-titulo">Mis Inmuebles Publicados</h2>
-            <p class="vista-sub">Gestiona el estado, modifica o retira las propiedades de tu cuenta.</p>
+        
+        <!-- Tarjeta de Perfil del Usuario -->
+        <div class="perfil-card" id="perfil-resumen">
+          <div class="perfil-card__info">
+            <img id="perfil-avatar" class="perfil-card__avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200" alt="Avatar">
+            <div>
+              <h2 id="perfil-nombre" class="perfil-card__nombre">Cargando perfil...</h2>
+              <p id="perfil-handle" class="perfil-card__handle">@usuario</p>
+              <span class="badge-tipo" id="perfil-total-anuncios">0 Inmuebles publicados</span>
+            </div>
           </div>
-          <button type="button" class="btn btn--primario btn--sm" id="btn-mis-publicar">+ Publicar Otro Inmueble</button>
-        </header>
+          <div class="perfil-card__acciones">
+            <button type="button" class="btn btn--secundario btn--sm" id="btn-abrir-editar-perfil">⚙️ Editar Perfil</button>
+            <button type="button" class="btn btn--primario btn--sm" id="btn-mis-publicar">+ Publicar Inmueble</button>
+          </div>
+        </div>
 
-        <div class="grilla" id="grilla-mis-propiedades"></div>
+        <!-- Pestañas de Gestión: Inmuebles vs Mensajes -->
+        <div class="tabs-gestion">
+          <button type="button" class="tab-btn activo" id="tab-btn-inmuebles">
+            🏢 Mis Publicaciones (<span id="cuenta-mis-inmuebles">0</span>)
+          </button>
+          <button type="button" class="tab-btn" id="tab-btn-mensajes">
+            💬 Mensajes Recibidos (<span id="cuenta-mis-mensajes">0</span>)
+          </button>
+        </div>
+
+        <!-- Contenedor 1: Grilla de Inmuebles Propios -->
+        <div id="seccion-mis-inmuebles" class="tab-panel activo">
+          <div class="grilla" id="grilla-mis-propiedades"></div>
+        </div>
+
+        <!-- Contenedor 2: Bandeja de Mensajes Recibidos -->
+        <div id="seccion-mis-mensajes" class="tab-panel">
+          <div class="bandeja-mensajes" id="lista-mensajes-recibidos"></div>
+        </div>
+
       </div>
     </section>
 
@@ -320,7 +356,7 @@
     </div>
   </div>
 
-  <!-- ============ MODAL PREVIEW (CON DRAG & DROP PARA REORDENAR) ============ -->
+  <!-- ============ MODAL PREVIEW (CON DRAG & DROP) ============ -->
   <div class="modal" id="modal-preview" hidden>
     <div class="modal__fondo" data-cerrar="modal-preview"></div>
     <div class="modal__caja modal__caja--detalle">
@@ -329,7 +365,6 @@
         <span>👁️ Vista Previa: Revisa y ajusta antes de publicar</span>
       </div>
       
-      <!-- Organizador visual para arrastrar y soltar fotos -->
       <div class="preview-reordenador">
         <p class="preview-reordenador__guia">
           🖐️ <strong>Organiza tu galería:</strong> Mantén presionado y arrastra cualquier foto o video para cambiar el orden de portada.
@@ -346,7 +381,58 @@
     </div>
   </div>
 
-  <!-- ============ MODAL AUTH ============ -->
+  <!-- ============ MODAL REGISTRO / EDICIÓN DE PERFIL ============ -->
+  <div class="modal" id="modal-perfil" hidden>
+    <div class="modal__fondo"></div>
+    <div class="modal__caja auth-caja">
+      <h2 id="perfil-modal-titulo">Configura tu Perfil</h2>
+      <p class="seccion__sub">Completa tus datos para publicar y chatear con interesados en la plataforma.</p>
+      
+      <form id="form-perfil" class="campo-grupo">
+        <div class="perfil-avatar-preview">
+          <img id="perfil-avatar-img" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200" alt="Avatar Previo">
+          <label for="perfil-input-foto" class="btn btn--secundario btn--sm">Subir Foto de Perfil</label>
+          <input type="file" id="perfil-input-foto" accept="image/*" hidden>
+        </div>
+
+        <div class="campo">
+          <label for="perfil-input-nombre">Nombre Real y Apellido *</label>
+          <input type="text" id="perfil-input-nombre" placeholder="Ej. Sebastián Salazar" required>
+        </div>
+
+        <div class="campo">
+          <label for="perfil-input-username">Nombre de Usuario (@único) *</label>
+          <input type="text" id="perfil-input-username" placeholder="Ej. sebastian_andes" required>
+        </div>
+
+        <button type="submit" class="btn btn--primario btn--full" id="btn-guardar-perfil">Guardar y Continuar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL CHAT CON EL PROPIETARIO ============ -->
+  <div class="modal" id="modal-chat" hidden>
+    <div class="modal__fondo" data-cerrar="modal-chat"></div>
+    <div class="modal__caja auth-caja">
+      <button class="modal__cerrar" type="button" data-cerrar="modal-chat">&times;</button>
+      <h2>Enviar Mensaje Directo</h2>
+      <p class="seccion__sub" id="chat-inmueble-titulo">Consulta al propietario</p>
+
+      <form id="form-chat" class="campo-grupo">
+        <input type="hidden" id="chat-destinatario-uid">
+        <input type="hidden" id="chat-inmueble-id">
+
+        <div class="campo">
+          <label for="chat-mensaje">Tu Mensaje *</label>
+          <textarea id="chat-mensaje" rows="4" placeholder="Ej. Buenas tardes, ¿la propiedad aún se encuentra disponible para visitarla mañana?" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn--primario btn--full" id="btn-enviar-chat">Enviar Mensaje</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL AUTH GOOGLE ============ -->
   <div class="modal" id="modal-auth" hidden>
     <div class="modal__fondo" data-cerrar="modal-auth"></div>
     <div class="modal__caja auth-caja">
@@ -415,6 +501,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=12"></script>
+  <script src="script.js?v=13"></script>
 </body>
 </html>

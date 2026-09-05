@@ -120,14 +120,6 @@ a {
   margin-bottom: var(--sp-3); 
 }
 
-.vista-head--flex {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
 .vista-titulo { 
   font-size: clamp(1.8rem, 3.5vw, 2.5rem); 
   font-weight: 800; 
@@ -175,6 +167,7 @@ a {
 }
 
 .nav__enlace {
+  position: relative;
   color: var(--c-texto-suave);
   font-weight: 600;
   font-size: .95rem;
@@ -193,11 +186,44 @@ a {
   background: var(--c-marca) !important; 
 }
 
+.badge-mensajes {
+  background: var(--c-acento);
+  color: #ffffff;
+  font-size: .7rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+
 .header__acciones { 
   display: flex; 
   align-items: center; 
   gap: .6rem; 
   margin-left: auto; 
+}
+
+.usuario-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .75rem;
+  background: var(--c-superficie-2);
+  border: 1px solid var(--c-borde);
+  border-radius: 999px;
+}
+
+.usuario-header__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.usuario-header__nombre {
+  font-size: .84rem;
+  font-weight: 700;
+  color: var(--c-texto);
 }
 
 /* =========================================================
@@ -229,6 +255,7 @@ a {
 .btn--lg { padding: .9rem 1.8rem; font-size: 1.05rem; }
 .btn--wa { background: #25d366; color: #ffffff; }
 .btn--wa:hover { filter: brightness(1.06); }
+.btn--chat { background: var(--c-marca); color: #ffffff; }
 .btn--peligro { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
 .btn--peligro:hover { background: #dc2626; color: #ffffff; }
 .btn--full { width: 100%; }
@@ -378,7 +405,7 @@ a {
 .proposito-card p { font-size: .92rem; color: var(--c-texto-suave); margin: 0; }
 
 /* =========================================================
-   BARRA HORIZONTAL DE FILTROS (COMPACTA)
+   BARRA HORIZONTAL DE FILTROS
    ========================================================= */
 .buscador--horizontal {
   display: flex;
@@ -510,6 +537,12 @@ a {
   margin: 0;
 }
 
+.campo-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
 .campo label { 
   display: block !important;
   font-size: .78rem !important; 
@@ -576,6 +609,191 @@ a {
 
 .campo--ancho { 
   grid-column: 1 / -1 !important; 
+}
+
+/* =========================================================
+   PERFIL DE USUARIO Y PESTAÑAS DE GESTIÓN
+   ========================================================= */
+.perfil-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--c-superficie);
+  border: 1px solid var(--c-borde);
+  border-radius: var(--radio);
+  padding: 1.8rem;
+  box-shadow: var(--sombra);
+  margin-bottom: 2rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.perfil-card__info {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.perfil-card__avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--c-marca);
+  box-shadow: var(--sombra);
+}
+
+.perfil-card__nombre {
+  font-size: 1.45rem;
+  margin: 0 0 .2rem;
+}
+
+.perfil-card__handle {
+  color: var(--c-marca);
+  font-weight: 700;
+  font-size: .95rem;
+  margin: 0 0 .5rem;
+}
+
+.perfil-card__acciones {
+  display: flex;
+  gap: .8rem;
+  flex-wrap: wrap;
+}
+
+/* Modal Configuración Perfil */
+.perfil-avatar-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .8rem;
+  margin-bottom: .8rem;
+}
+
+.perfil-avatar-preview img {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--c-borde);
+}
+
+/* Pestañas de Gestión */
+.tabs-gestion {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 2px solid var(--c-borde);
+  margin-bottom: 2rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--c-texto-suave);
+  padding: .75rem 1.2rem;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all var(--transicion);
+}
+
+.tab-btn.activo {
+  color: var(--c-marca);
+  border-color: var(--c-marca);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.activo {
+  display: block;
+}
+
+/* =========================================================
+   BANDEJA DE MENSAJES Y CHATS
+   ========================================================= */
+.bandeja-mensajes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.mensaje-card {
+  background: var(--c-superficie);
+  border: 1px solid var(--c-borde);
+  border-radius: var(--radio-sm);
+  padding: 1.4rem;
+  box-shadow: var(--sombra);
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.mensaje-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.mensaje-card__remitente {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+.mensaje-card__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mensaje-card__tiempo {
+  font-size: .8rem;
+  color: var(--c-texto-suave);
+}
+
+.mensaje-card__inmueble {
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--c-marca);
+}
+
+.mensaje-card__cuerpo {
+  font-size: .95rem;
+  color: var(--c-texto);
+  line-height: 1.5;
+  background: var(--c-superficie-2);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.mensaje-card__respuestas {
+  margin-left: 1.5rem;
+  border-left: 2px solid var(--c-marca);
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+.respuesta-item {
+  font-size: .9rem;
+  background: color-mix(in srgb, var(--c-marca) 8%, transparent);
+  padding: .75rem 1rem;
+  border-radius: 8px;
+}
+
+.mensaje-card__responder {
+  display: flex;
+  gap: .6rem;
+  margin-top: .4rem;
 }
 
 /* =========================================================
@@ -653,7 +871,6 @@ a {
   color: #ffffff; 
 }
 
-/* Panel específico para tarjetas de mis propiedades */
 .tarjeta__acciones-propietario {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -661,6 +878,12 @@ a {
   padding: .85rem 1.2rem;
   background: var(--c-superficie-2);
   border-top: 1px solid var(--c-borde);
+}
+
+.tarjeta__contacto-fila {
+  display: flex;
+  gap: .5rem;
+  margin-top: .5rem;
 }
 
 /* =========================================================
@@ -1219,7 +1442,7 @@ a {
   background: var(--c-superficie-2);
 }
 
-.auth-caja { width: min(100%, 400px); padding: 2rem; text-align: center; }
+.auth-caja { width: min(100%, 420px); padding: 2.2rem; text-align: center; }
 .auth-header { margin-bottom: 1.5rem; }
 
 .btn-google {
@@ -1239,7 +1462,6 @@ a {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-/* Formulario modal de publicación */
 .pub-caja {
   width: min(100%, 780px);
   padding: 2.2rem;
@@ -1266,42 +1488,6 @@ a {
 .barra-movil { display: none; }
 
 /* =========================================================
-   FOOTER
-   ========================================================= */
-.footer { 
-  background: var(--c-superficie); 
-  border-top: 1px solid var(--c-borde); 
-  padding-top: var(--sp-4); 
-}
-
-.footer__inner { 
-  display: grid; 
-  grid-template-columns: 2fr 1fr 1fr; 
-  gap: var(--sp-3); 
-  padding-bottom: var(--sp-3); 
-}
-
-.footer__titulo { font-size: .95rem; font-weight: 700; margin-bottom: .6rem; }
-.footer__texto { font-size: .86rem; color: var(--c-texto-suave); }
-.footer__redes { display: flex; gap: .75rem; }
-
-.red-enlace {
-  display: grid; 
-  place-items: center; 
-  width: 38px; 
-  height: 38px; 
-  border-radius: 50%;
-  background: var(--c-superficie-2); 
-  color: var(--c-texto); 
-  transition: transform var(--transicion), background-color var(--transicion), color var(--transicion);
-}
-
-.red-enlace:hover { 
-  background: var(--c-marca); 
-  color: #ffffff; 
-}
-
-/* =========================================================
    RESPONSIVE (MÓVIL CALIBRADO)
    ========================================================= */
 @media (max-width: 900px) {
@@ -1320,6 +1506,19 @@ a {
   .hero-impacto__botones button { width: 100%; }
   
   .vista { padding-bottom: 85px; }
+
+  .perfil-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .perfil-card__acciones {
+    width: 100%;
+  }
+
+  .perfil-card__acciones button {
+    flex: 1;
+  }
 
   /* Barra de filtros adaptada limpia en celular */
   .buscador--horizontal {
