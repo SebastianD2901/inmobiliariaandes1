@@ -1,5 +1,5 @@
 /* =========================================================
-   Andina Propiedades — Perfil de Usuario, Mensajería & Cloudinary
+   Andina Propiedades — Perfiles Duales, Chat y Mensajería
    ========================================================= */
 
 const CLOUDINARY_CLOUD_NAME = "ipe9us2o"; 
@@ -32,7 +32,7 @@ const PROPIEDAD_DEMO = {
 };
 
 // ==========================================
-// 1. SISTEMA DE RUTAS (SPA NAVIGATION)
+// 1. RUTAS SPA
 // ==========================================
 function cambiarVista(vistaId) {
   document.querySelectorAll(".vista").forEach(v => {
@@ -94,7 +94,7 @@ if (btnMisPublicar) {
 }
 
 // ==========================================
-// 2. CONFIGURACIÓN FIREBASE
+// 2. FIREBASE
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyDLlfRoXdcr92D6jIxBZ3ZyXwb2s0Qql6Y",
@@ -115,15 +115,16 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 
 let PROPIEDADES = [];
 let usuarioActual = null;
-let datosPerfilActual = null; // { nombre, username, fotoUrl }
+let datosPerfilActual = null;
 let unsubscribeMensajes = null;
+let unsubscribeEnviados = null;
 let propiedadEnBorrador = null;
 let elementosGaleriaBorrador = []; 
 let elementoArrastradoIdx = null;
 let archivoFotoPerfilSeleccionado = null;
 
 // ==========================================
-// 3. ESCUCHA FIRESTORE (INMUEBLES)
+// 3. ESCUCHA FIRESTORE DE INMUEBLES
 // ==========================================
 db.collection("propiedades").onSnapshot(
   (snapshot) => {
@@ -140,12 +141,12 @@ db.collection("propiedades").onSnapshot(
     renderizarMisPropiedades();
   },
   (err) => {
-    console.error("Fallo al conectar con Firestore:", err);
+    console.error("Fallo al sincronizar Firestore:", err);
   }
 );
 
 // ==========================================
-// 4. DETECCIÓN MULTIMEDIA Y CLOUDINARY
+// 4. CLOUDINARY
 // ==========================================
 function obtenerStringUrl(item) {
   if (!item) return "";
@@ -191,7 +192,7 @@ async function subirACloudinary(file) {
 }
 
 // ==========================================
-// 5. AUTENTICACIÓN Y GESTIÓN DE PERFIL
+// 5. AUTENTICACIÓN Y PERFIL DE COMPRADOR/VENDEDOR
 // ==========================================
 auth.onAuthStateChanged(async (user) => {
   usuarioActual = user;
@@ -206,9 +207,8 @@ auth.onAuthStateChanged(async (user) => {
     if (navMisProp) navMisProp.hidden = false;
     if (barraMisProp) barraMisProp.hidden = false;
 
-    // Verificar si el usuario ya tiene su perfil creado en Firestore
     await cargarOExigirPerfil(user);
-    escucharMensajesRecibidos(user.uid);
+    escucharMensajes(user.uid);
     cerrarCualquierModal();
   } else {
     $("#btn-login-modal").hidden = false;
@@ -219,10 +219,8 @@ auth.onAuthStateChanged(async (user) => {
     if (chipPerfilHeader) chipPerfilHeader.hidden = true;
     datosPerfilActual = null;
 
-    if (unsubscribeMensajes) {
-      unsubscribeMensajes();
-      unsubscribeMensajes = null;
-    }
+    if (unsubscribeMensajes) { unsubscribeMensajes(); unsubscribeMensajes = null; }
+    if (unsubscribeEnviados) { unsubscribeEnviados(); unsubscribeEnviados = null; }
 
     if (window.location.hash === "#mis-propiedades") {
       cambiarVista("inicio");
@@ -239,18 +237,16 @@ async function cargarOExigirPerfil(user) {
       datosPerfilActual = userDoc.data();
       actualizarUiPerfil(datosPerfilActual);
     } else {
-      // Exigir creación obligatoria de perfil
       abrirModalPerfil(true);
     }
   } catch (err) {
-    console.error("Error al cargar perfil:", err);
+    console.error("Error al obtener perfil:", err);
   }
 }
 
 function actualizarUiPerfil(perfil) {
   const avatarUrl = perfil.fotoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
   
-  // Header
   const chip = $("#header-perfil-chip");
   if (chip) {
     chip.hidden = false;
@@ -258,7 +254,6 @@ function actualizarUiPerfil(perfil) {
     $("#header-username").textContent = `@${perfil.username}`;
   }
 
-  // Tarjeta de Mis Inmuebles
   if ($("#perfil-avatar")) $("#perfil-avatar").src = avatarUrl;
   if ($("#perfil-nombre")) $("#perfil-nombre").textContent = perfil.nombre;
   if ($("#perfil-handle")) $("#perfil-handle").textContent = `@${perfil.username}`;
@@ -276,7 +271,7 @@ function abrirModalPerfil(esObligatorio = false) {
     $("#perfil-input-username").value = datosPerfilActual.username;
     $("#perfil-avatar-img").src = datosPerfilActual.fotoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
   } else if (usuarioActual) {
-    $("#perfil-modal-titulo").textContent = "Crea tu Perfil";
+    $("#perfil-modal-titulo").textContent = "Configura tu Perfil";
     $("#perfil-input-nombre").value = usuarioActual.displayName || "";
     $("#perfil-input-username").value = (usuarioActual.email.split("@")[0]).replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
     $("#perfil-avatar-img").src = usuarioActual.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
@@ -307,19 +302,11 @@ $("#form-perfil").addEventListener("submit", async (e) => {
   const nombre = $("#perfil-input-nombre").value.trim();
   const username = $("#perfil-input-username").value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
 
-  if (!username) {
-    alert("Por favor ingresa un nombre de usuario válido.");
-    btn.disabled = false;
-    btn.textContent = "Guardar y Continuar";
-    return;
-  }
-
   try {
     let fotoUrl = datosPerfilActual ? datosPerfilActual.fotoUrl : (usuarioActual.photoURL || "");
 
-    // Si seleccionó una nueva foto, subir a Cloudinary
     if (archivoFotoPerfilSeleccionado) {
-      btn.textContent = "Subiendo foto de perfil...";
+      btn.textContent = "Subiendo foto...";
       fotoUrl = await subirACloudinary(archivoFotoPerfilSeleccionado);
     }
 
@@ -338,12 +325,12 @@ $("#form-perfil").addEventListener("submit", async (e) => {
 
     $("#modal-perfil").hidden = true;
     document.body.classList.remove("sin-scroll");
-    alert("¡Perfil guardado con éxito!");
+    alert("¡Perfil guardado correctamente!");
   } catch (err) {
     alert("Error al guardar perfil: " + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Guardar y Continuar";
+    btn.textContent = "Completar Perfil";
   }
 });
 
@@ -366,7 +353,6 @@ $("#btn-google").addEventListener("click", () => {
 // ==========================================
 function cerrarCualquierModal() {
   document.querySelectorAll(".modal").forEach(m => {
-    // No cerrar si el perfil es nuevo y no está guardado
     if (m.id === "modal-perfil" && usuarioActual && !datosPerfilActual) return;
     m.hidden = true;
     m.querySelectorAll("video").forEach(v => v.pause());
@@ -659,7 +645,7 @@ $("#btn-preview-confirmar").addEventListener("click", async (e) => {
 });
 
 // ==========================================
-// 8. CHAT DIRECTO Y MENSAJERÍA
+// 8. CHAT Y CONSULTAS DIRECTAS (COMPRADOR / VENDEDOR)
 // ==========================================
 function abrirModalChat(destinatarioUid, inmuebleId, inmuebleTitulo) {
   if (!usuarioActual) {
@@ -692,9 +678,9 @@ $("#form-chat").addEventListener("submit", async (e) => {
 
   const btn = $("#btn-enviar-chat");
   btn.disabled = true;
-  btn.textContent = "Enviando mensaje...";
+  btn.textContent = "Enviando...";
 
-  const remitenteNombre = datosPerfilActual ? datosPerfilActual.nombre : usuarioActual.displayName;
+  const remitenteNombre = datosPerfilActual ? datosPerfilActual.nombre : (usuarioActual.displayName || "Comprador");
   const remitenteUsername = datosPerfilActual ? datosPerfilActual.username : "usuario";
   const remitenteFoto = datosPerfilActual ? datosPerfilActual.fotoUrl : (usuarioActual.photoURL || "");
 
@@ -713,29 +699,32 @@ $("#form-chat").addEventListener("submit", async (e) => {
       respuestas: []
     };
 
-    // Guardar en la subcolección de mensajes del destinatario
+    // Guardar en la bandeja del destinatario y en la del remitente
     await db.collection("usuarios").doc(destinatarioUid).collection("mensajes").add(nuevoMensaje);
+    await db.collection("usuarios").doc(usuarioActual.uid).collection("mensajes_enviados").add(nuevoMensaje);
 
     $("#modal-chat").hidden = true;
     document.body.classList.remove("sin-scroll");
-    alert("¡Tu mensaje fue enviado directamente al perfil del vendedor!");
+    alert("¡Mensaje enviado exitosamente al vendedor! Podrás revisar las respuestas en tu panel.");
   } catch (err) {
-    alert("Error al enviar el mensaje: " + err.message);
+    alert("Error al enviar mensaje: " + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = "Enviar Mensaje";
   }
 });
 
-function escucharMensajesRecibidos(uid) {
+function escucharMensajes(uid) {
   if (unsubscribeMensajes) unsubscribeMensajes();
+  if (unsubscribeEnviados) unsubscribeEnviados();
 
+  // 1. Mensajes que este usuario RECIBE
   unsubscribeMensajes = db.collection("usuarios").doc(uid).collection("mensajes")
     .onSnapshot((snapshot) => {
-      const listaMensajes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      listaMensajes.sort((a, b) => (b.creadoEn || 0) - (a.creadoEn || 0));
+      const listaRecibidos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      listaRecibidos.sort((a, b) => (b.creadoEn || 0) - (a.creadoEn || 0));
 
-      const noLeidos = listaMensajes.filter(m => !m.leido).length;
+      const noLeidos = listaRecibidos.filter(m => !m.leido).length;
       const navBadge = $("#contador-nav-mensajes");
       if (navBadge) {
         navBadge.textContent = noLeidos;
@@ -743,19 +732,32 @@ function escucharMensajesRecibidos(uid) {
       }
 
       if ($("#cuenta-mis-mensajes")) {
-        $("#cuenta-mis-mensajes").textContent = listaMensajes.length;
+        $("#cuenta-mis-mensajes").textContent = listaRecibidos.length;
       }
 
-      renderizarBandejaMensajes(listaMensajes);
+      renderizarBandejaRecibidos(listaRecibidos);
+    });
+
+  // 2. Consultas que este usuario ENVIÓ como comprador
+  unsubscribeEnviados = db.collection("usuarios").doc(uid).collection("mensajes_enviados")
+    .onSnapshot((snapshot) => {
+      const listaEnviados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      listaEnviados.sort((a, b) => (b.creadoEn || 0) - (a.creadoEn || 0));
+
+      if ($("#cuenta-mensajes-enviados")) {
+        $("#cuenta-mensajes-enviados").textContent = listaEnviados.length;
+      }
+
+      renderizarBandejaEnviados(listaEnviados);
     });
 }
 
-function renderizarBandejaMensajes(mensajes) {
+function renderizarBandejaRecibidos(mensajes) {
   const contenedor = $("#lista-mensajes-recibidos");
   if (!contenedor) return;
 
   if (mensajes.length === 0) {
-    contenedor.innerHTML = `<p style="text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No tienes mensajes o consultas recibidas aún.</p>`;
+    contenedor.innerHTML = `<p style="text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No tienes consultas recibidas sobre tus inmuebles.</p>`;
     return;
   }
 
@@ -764,7 +766,7 @@ function renderizarBandejaMensajes(mensajes) {
     const fecha = new Date(m.creadoEn).toLocaleDateString("es-EC", { hour: "2-digit", minute: "2-digit" });
 
     return `
-      <article class="mensaje-card" data-msg-id="${m.id}">
+      <article class="mensaje-card">
         <div class="mensaje-card__header">
           <div class="mensaje-card__remitente">
             <img src="${avatar}" class="mensaje-card__avatar" alt="Avatar">
@@ -775,7 +777,7 @@ function renderizarBandejaMensajes(mensajes) {
           <span class="mensaje-card__tiempo">${fecha}</span>
         </div>
 
-        <div class="mensaje-card__inmueble">Sobre tu anuncio: ${m.inmuebleTitulo}</div>
+        <div class="mensaje-card__inmueble">Inmueble consultado: ${m.inmuebleTitulo}</div>
         <div class="mensaje-card__cuerpo">${m.mensaje}</div>
 
         ${m.respuestas && m.respuestas.length > 0 ? `
@@ -788,8 +790,8 @@ function renderizarBandejaMensajes(mensajes) {
           </div>
         ` : ''}
 
-        <form class="mensaje-card__responder" data-form-responder="${m.id}">
-          <input type="text" placeholder="Escribe una respuesta rápida..." required style="height: 40px !important;">
+        <form class="mensaje-card__responder" data-form-responder="${m.id}" data-remitente-uid="${m.remitenteUid}">
+          <input type="text" placeholder="Escribe tu respuesta al interesado..." required style="height: 40px !important;">
           <button type="submit" class="btn btn--primario btn--sm">Responder</button>
         </form>
       </article>
@@ -797,7 +799,42 @@ function renderizarBandejaMensajes(mensajes) {
   }).join("");
 }
 
-// Enviar respuesta desde la bandeja de mensajes
+function renderizarBandejaEnviados(mensajes) {
+  const contenedor = $("#lista-mensajes-enviados");
+  if (!contenedor) return;
+
+  if (mensajes.length === 0) {
+    contenedor.innerHTML = `<p style="text-align: center; color: var(--c-texto-suave); padding: 3rem 0;">No has enviado consultas a ningún vendedor todavía.</p>`;
+    return;
+  }
+
+  contenedor.innerHTML = mensajes.map(m => {
+    const fecha = new Date(m.creadoEn).toLocaleDateString("es-EC", { hour: "2-digit", minute: "2-digit" });
+
+    return `
+      <article class="mensaje-card">
+        <div class="mensaje-card__header">
+          <strong>Consulta sobre: ${m.inmuebleTitulo}</strong>
+          <span class="mensaje-card__tiempo">${fecha}</span>
+        </div>
+
+        <div class="mensaje-card__cuerpo"><strong>Tu pregunta:</strong> ${m.mensaje}</div>
+
+        ${m.respuestas && m.respuestas.length > 0 ? `
+          <div class="mensaje-card__respuestas">
+            ${m.respuestas.map(r => `
+              <div class="respuesta-item">
+                <strong>Respuesta del Propietario:</strong> ${r.texto}
+              </div>
+            `).join('')}
+          </div>
+        ` : `<p style="font-size: .84rem; color: var(--c-texto-suave); margin: .4rem 0 0;">Esperando respuesta del propietario...</p>`}
+      </article>
+    `;
+  }).join("");
+}
+
+// Responder mensaje
 const listaMensajesRecibidos = $("#lista-mensajes-recibidos");
 if (listaMensajesRecibidos) {
   listaMensajesRecibidos.addEventListener("submit", async (e) => {
@@ -826,20 +863,28 @@ if (listaMensajesRecibidos) {
   });
 }
 
-// Pestañas de "Mis Inmuebles"
+// Pestañas de Gestión
 $("#tab-btn-inmuebles").addEventListener("click", () => {
-  $("#tab-btn-inmuebles").classList.add("activo");
-  $("#tab-btn-mensajes").classList.remove("activo");
-  $("#seccion-mis-inmuebles").classList.add("activo");
-  $("#seccion-mis-mensajes").classList.remove("activo");
+  activarPestana("inmuebles");
 });
 
-$("#tab-btn-mensajes").addEventListener("click", () => {
-  $("#tab-btn-mensajes").classList.add("activo");
-  $("#tab-btn-inmuebles").classList.remove("activo");
-  $("#seccion-mis-mensajes").classList.add("activo");
-  $("#seccion-mis-inmuebles").classList.remove("activo");
+$("#tab-btn-recibidos").addEventListener("click", () => {
+  activarPestana("recibidos");
 });
+
+$("#tab-btn-enviados").addEventListener("click", () => {
+  activarPestana("enviados");
+});
+
+function activarPestana(tipo) {
+  $("#tab-btn-inmuebles").classList.toggle("activo", tipo === "inmuebles");
+  $("#tab-btn-recibidos").classList.toggle("activo", tipo === "recibidos");
+  $("#tab-btn-enviados").classList.toggle("activo", tipo === "enviados");
+
+  $("#seccion-mis-inmuebles").classList.toggle("activo", tipo === "inmuebles");
+  $("#seccion-mis-recibidos").classList.toggle("activo", tipo === "recibidos");
+  $("#seccion-mis-enviados").classList.toggle("activo", tipo === "enviados");
+}
 
 // ==========================================
 // 9. GESTIÓN: ESTADO Y ELIMINACIÓN
@@ -858,14 +903,14 @@ async function eliminarPropiedad(id) {
   try {
     await db.collection("propiedades").doc(String(id)).delete();
     cerrarCualquierModal();
-    alert("Publicación eliminada correctamente.");
+    alert("Publicación eliminada.");
   } catch (e) {
     alert("Error al eliminar: " + e.message);
   }
 }
 
 // ==========================================
-// 10. RENDERIZADO EXCLUSIVO: "MIS INMUEBLES"
+// 10. RENDERIZADO DE MIS PROPIEDADES
 // ==========================================
 function renderizarMisPropiedades() {
   const grilla = $("#grilla-mis-propiedades");
@@ -874,8 +919,8 @@ function renderizarMisPropiedades() {
   if (!usuarioActual) {
     grilla.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; padding: 3rem 1rem;">
-        <p style="color: var(--c-texto-suave); font-size: 1.1rem; margin-bottom: 1.2rem;">Debes iniciar sesión para ver tus propiedades publicadas.</p>
-        <button class="btn btn--primario" onclick="$('#modal-auth').hidden = false;">Iniciar Sesión con Google</button>
+        <p style="color: var(--c-texto-suave); font-size: 1.1rem; margin-bottom: 1.2rem;">Inicia sesión para gestionar tus publicaciones o responder tus mensajes.</p>
+        <button class="btn btn--primario" onclick="$('#modal-auth').hidden = false;">Ingresar con Google</button>
       </div>
     `;
     return;
@@ -884,13 +929,15 @@ function renderizarMisPropiedades() {
   const misCasas = PROPIEDADES.filter(p => p.creadorUid && p.creadorUid === usuarioActual.uid);
 
   if ($("#cuenta-mis-inmuebles")) $("#cuenta-mis-inmuebles").textContent = misCasas.length;
-  if ($("#perfil-total-anuncios")) $("#perfil-total-anuncios").textContent = `${misCasas.length} Inmuebles publicados`;
+  if ($("#perfil-tipo-cuenta")) {
+    $("#perfil-tipo-cuenta").textContent = misCasas.length > 0 ? `${misCasas.length} Inmuebles publicados` : "Comprador / Buscador Activo";
+  }
 
   if (misCasas.length === 0) {
     grilla.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; padding: 3rem 1rem;">
-        <p style="color: var(--c-texto-suave); font-size: 1.1rem; margin-bottom: 1.2rem;">Aún no has publicado ningún inmueble desde esta cuenta.</p>
-        <button class="btn btn--primario" id="btn-publicar-primera">+ Publicar mi primer inmueble</button>
+        <p style="color: var(--c-texto-suave); font-size: 1.1rem; margin-bottom: 1.2rem;">Tu perfil está activo como comprador. Si eres propietario o agente, puedes publicar tu inmueble ahora mismo.</p>
+        <button class="btn btn--primario" id="btn-publicar-primera">+ Empezar a publicar inmuebles</button>
       </div>
     `;
     const btnPrimer = $("#btn-publicar-primera");
@@ -987,7 +1034,7 @@ if (grillaMisPropiedades) {
 }
 
 // ==========================================
-// 11. MOTOR DE CARRUSEL
+// 11. CARRUSEL
 // ==========================================
 function generarHtmlCarrusel(galeria, idContenedor, esModal = false) {
   if (!galeria || galeria.length === 0) {
@@ -1135,7 +1182,6 @@ function renderizarCatalogo(lista) {
   }).join("");
 }
 
-// Clics en catálogo
 $("#grilla-propiedades").addEventListener("click", (e) => {
   if (e.target.closest(".carrusel-btn") || e.target.closest('[data-stop-propagation="true"]')) return;
 
@@ -1216,24 +1262,15 @@ function abrirModalDetalle(p) {
       <div class="modal__metricas-grid">
         <div class="metrica-item">
           <span class="metrica-item__icono">🛏️</span>
-          <div>
-            <strong>${p.dormitorios || 0}</strong>
-            <small>Dormitorios</small>
-          </div>
+          <div><strong>${p.dormitorios || 0}</strong><small>Dormitorios</small></div>
         </div>
         <div class="metrica-item">
           <span class="metrica-item__icono">🚿</span>
-          <div>
-            <strong>${p.banos || 0}</strong>
-            <small>Baños</small>
-          </div>
+          <div><strong>${p.banos || 0}</strong><small>Baños</small></div>
         </div>
         <div class="metrica-item">
           <span class="metrica-item__icono">📐</span>
-          <div>
-            <strong>${p.area || 0} m²</strong>
-            <small>Área Total</small>
-          </div>
+          <div><strong>${p.area || 0} m²</strong><small>Área Total</small></div>
         </div>
       </div>
 
@@ -1241,15 +1278,6 @@ function abrirModalDetalle(p) {
         <h3 class="bloque-subtitulo">Detalles y Descripción</h3>
         <p class="bloque-texto">${p.descripcion}</p>
       </div>
-
-      ${p.caracteristicas && p.caracteristicas.length ? `
-        <div class="modal__bloque">
-          <h3 class="bloque-subtitulo">Comodidades y Beneficios</h3>
-          <div class="modal__tags">
-            ${p.caracteristicas.map(c => `<span>✓ ${c}</span>`).join('')}
-          </div>
-        </div>
-      ` : ''}
 
       <div class="modal__acciones-contacto">
         ${p.ubicacionUrl ? `
@@ -1338,7 +1366,7 @@ $("#form-simulador").addEventListener("submit", (e) => {
 });
 
 // ==========================================
-// 14. BUSCADOR Y FILTROS
+// 14. FILTROS Y TEMA
 // ==========================================
 function filtrarYEjeCatalogo() {
   const ciudadFiltro = $("#f-ciudad") ? $("#f-ciudad").value.toLowerCase().trim() : "";
@@ -1385,7 +1413,7 @@ $("#btn-tema").addEventListener("click", () => {
   document.documentElement.setAttribute("data-theme", actual === "dark" ? "light" : "dark");
 });
 
-// Inicialización de la SPA
+// Inicio
 const rutaInicial = window.location.hash.replace("#", "") || "inicio";
 cambiarVista(rutaInicial);
 calcularSimulador();
